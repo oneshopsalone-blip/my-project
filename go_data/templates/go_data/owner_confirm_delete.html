@@ -1,0 +1,38 @@
+{% extends 'go_data/base.html' %}
+
+{% block title %}Delete Owner{% endblock %}
+
+{% block content %}
+<div class="delete-container" style="max-width: 500px; margin: 50px auto;">
+    <div class="card">
+        <div class="card-header" style="background: var(--danger-color); color: white;">
+            Confirm Delete
+        </div>
+        <div class="card-body text-center">
+            <div style="font-size: 4rem; margin-bottom: 20px;">⚠️</div>
+            <h2 style="margin-bottom: 20px;">Are you sure?</h2>
+            <p style="margin-bottom: 30px;">
+                You are about to delete owner:<br>
+                <strong>{{ object.owner_id }} - {{ object.name }}</strong>
+            </p>
+            
+            {% if object.vehicles.exists %}
+            <div class="alert alert-error" style="background: #f8d7da; color: #721c24; padding: 15px; border-radius: 4px; margin-bottom: 20px;">
+                <strong>Cannot delete!</strong> This owner has {{ object.vehicles.count }} vehicle(s) assigned.
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <a href="{% url 'vehicles:owner_list' %}" class="btn btn-primary">Back to List</a>
+            </div>
+            {% else %}
+            <form method="post">
+                {% csrf_token %}
+                <div style="display: flex; gap: 10px; justify-content: center;">
+                    <a href="{% url 'vehicles:owner_list' %}" class="btn btn-outline">Cancel</a>
+                    <button type="submit" class="btn btn-danger">Yes, Delete</button>
+                </div>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,482 @@
+{% extends 'go_data/base.html' %}
+{% load static %}
+
+{% block title %}My Profile - Vehicle Management System{% endblock %}
+
+{% block extra_css %}
+<style>
+    .profile-container {
+        max-width: 1000px;
+        margin: 40px auto;
+        padding: 0 20px;
+    }
+    
+    .profile-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px;
+        border-radius: 15px 15px 0 0;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .profile-header::after {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    }
+    
+    .profile-avatar {
+        width: 100px;
+        height: 100px;
+        background: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 48px;
+        margin-bottom: 20px;
+        position: relative;
+        z-index: 1;
+    }
+    
+    .profile-name {
+        font-size: 28px;
+        font-weight: 600;
+        margin-bottom: 5px;
+        position: relative;
+        z-index: 1;
+    }
+    
+    .profile-email {
+        font-size: 16px;
+        opacity: 0.9;
+        margin-bottom: 10px;
+        position: relative;
+        z-index: 1;
+    }
+    
+    .profile-badge {
+        display: inline-block;
+        padding: 5px 15px;
+        background: rgba(255,255,255,0.2);
+        border-radius: 20px;
+        font-size: 14px;
+        position: relative;
+        z-index: 1;
+    }
+    
+    .profile-content {
+        background: white;
+        border-radius: 0 0 15px 15px;
+        padding: 30px;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+    }
+    
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 30px;
+        margin-bottom: 30px;
+    }
+    
+    .info-card {
+        background: #f9f9f9;
+        border-radius: 10px;
+        padding: 20px;
+    }
+    
+    .info-card h3 {
+        margin: 0 0 20px 0;
+        color: #333;
+        font-size: 18px;
+        font-weight: 600;
+        border-bottom: 2px solid #e0e0e0;
+        padding-bottom: 10px;
+    }
+    
+    .info-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 10px 0;
+        border-bottom: 1px solid #e0e0e0;
+    }
+    
+    .info-row:last-child {
+        border-bottom: none;
+    }
+    
+    .info-label {
+        color: #666;
+        font-weight: 500;
+    }
+    
+    .info-value {
+        color: #333;
+        font-weight: 600;
+    }
+    
+    .activity-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .activity-item {
+        padding: 15px;
+        border-bottom: 1px solid #e0e0e0;
+    }
+    
+    .activity-item:last-child {
+        border-bottom: none;
+    }
+    
+    .activity-type {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 15px;
+        font-size: 12px;
+        font-weight: 600;
+        margin-bottom: 5px;
+    }
+    
+    .activity-type.login { background: #d4edda; color: #155724; }
+    .activity-type.logout { background: #f8d7da; color: #721c24; }
+    .activity-type.update { background: #fff3cd; color: #856404; }
+    .activity-type.create { background: #d1ecf1; color: #0c5460; }
+    .activity-type.print { background: #e2d5f1; color: #4a1e6f; }
+    
+    .activity-description {
+        color: #333;
+        margin-bottom: 5px;
+    }
+    
+    .activity-time {
+        font-size: 12px;
+        color: #999;
+    }
+    
+    .action-buttons {
+        display: flex;
+        gap: 15px;
+        flex-wrap: wrap;
+    }
+    
+    .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        transition: all 0.3s;
+    }
+    
+    .btn-primary {
+        background: #667eea;
+        color: white;
+    }
+    
+    .btn-primary:hover {
+        background: #5a67d8;
+        transform: translateY(-2px);
+    }
+    
+    .btn-secondary {
+        background: #48bb78;
+        color: white;
+    }
+    
+    .btn-secondary:hover {
+        background: #38a169;
+        transform: translateY(-2px);
+    }
+    
+    .btn-danger {
+        background: #f56565;
+        color: white;
+    }
+    
+    .btn-danger:hover {
+        background: #e53e3e;
+        transform: translateY(-2px);
+    }
+    
+    .btn-outline {
+        background: white;
+        border: 2px solid #667eea;
+        color: #667eea;
+    }
+    
+    .btn-outline:hover {
+        background: #667eea;
+        color: white;
+    }
+    
+    .sessions-list {
+        margin-top: 20px;
+    }
+    
+    .session-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px;
+        background: #f9f9f9;
+        border-radius: 8px;
+        margin-bottom: 10px;
+    }
+    
+    .session-info {
+        flex: 1;
+    }
+    
+    .session-device {
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 5px;
+    }
+    
+    .session-meta {
+        font-size: 12px;
+        color: #999;
+    }
+    
+    .session-current {
+        background: #e3f2fd;
+        border-left: 4px solid #2196f3;
+    }
+    
+    .badge {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 15px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    
+    .badge-success {
+        background: #48bb78;
+        color: white;
+    }
+    
+    .badge-warning {
+        background: #ecc94b;
+        color: white;
+    }
+    
+    .text-center {
+        text-align: center;
+    }
+    
+    .mt-4 {
+        margin-top: 30px;
+    }
+    
+    .mb-3 {
+        margin-bottom: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="profile-container">
+    <!-- Profile Header -->
+    <div class="profile-header">
+        <div class="profile-avatar">
+            {{ user.get_full_name|first|default:user.email|first|upper }}
+        </div>
+        <div class="profile-name">{{ user.get_full_name|default:user.email }}</div>
+        <div class="profile-email">{{ user.email }}</div>
+        <div class="profile-badge">
+            Role: {{ user.get_role_display }} | ID: {{ user.user_id }}
+        </div>
+    </div>
+    
+    <!-- Profile Content -->
+    <div class="profile-content">
+        <!-- Action Buttons -->
+        <div class="action-buttons mb-3">
+            <a href="{% url 'accounts:profile_update' %}" class="btn btn-primary">
+                ✏️ Edit Profile
+            </a>
+            <a href="{% url 'accounts:change_password' %}" class="btn btn-secondary">
+                🔐 Change Password
+            </a>
+            <a href="{% url 'accounts:sessions' %}" class="btn btn-outline">
+                📱 Active Sessions
+            </a>
+            <a href="{% url 'accounts:activity_log' %}" class="btn btn-outline">
+                📊 Activity Log
+            </a>
+        </div>
+        
+        <!-- Info Grid -->
+        <div class="info-grid">
+            <!-- Personal Information -->
+            <div class="info-card">
+                <h3>Personal Information</h3>
+                <div class="info-row">
+                    <span class="info-label">First Name</span>
+                    <span class="info-value">{{ user.first_name|default:"—" }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Last Name</span>
+                    <span class="info-value">{{ user.last_name|default:"—" }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Email</span>
+                    <span class="info-value">{{ user.email }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Phone</span>
+                    <span class="info-value">{{ user.phone_number|default:"—" }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Department</span>
+                    <span class="info-value">{{ user.department|default:"—" }}</span>
+                </div>
+            </div>
+            
+            <!-- Account Information -->
+            <div class="info-card">
+                <h3>Account Information</h3>
+                <div class="info-row">
+                    <span class="info-label">User ID</span>
+                    <span class="info-value">{{ user.user_id }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Role</span>
+                    <span class="info-value">
+                        <span class="badge badge-success">{{ user.get_role_display }}</span>
+                    </span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">2FA Status</span>
+                    <span class="info-value">
+                        <span class="badge {% if user.two_factor_enabled %}badge-success{% else %}badge-warning{% endif %}">
+                            {{ user.two_factor_enabled|yesno:"Enabled,Disabled" }}
+                        </span>
+                    </span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Email Verified</span>
+                    <span class="info-value">{{ user.email_verified|yesno:"✅ Yes,❌ No" }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Account Status</span>
+                    <span class="info-value">
+                        <span class="badge {% if user.is_active %}badge-success{% else %}badge-warning{% endif %}">
+                            {{ user.is_active|yesno:"Active,Inactive" }}
+                        </span>
+                    </span>
+                </div>
+            </div>
+            
+            <!-- Security Information -->
+            <div class="info-card">
+                <h3>Security</h3>
+                <div class="info-row">
+                    <span class="info-label">Last Login</span>
+                    <span class="info-value">{{ user.last_login|date:"M d, Y H:i"|default:"Never" }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Last Activity</span>
+                    <span class="info-value">{{ user.last_activity|date:"M d, Y H:i" }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Last Login IP</span>
+                    <span class="info-value">{{ user.last_login_ip|default:"—" }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Password Changed</span>
+                    <span class="info-value">{{ user.last_password_change|date:"M d, Y"|default:"Never" }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Date Joined</span>
+                    <span class="info-value">{{ user.date_joined|date:"M d, Y" }}</span>
+                </div>
+            </div>
+            
+            <!-- Statistics -->
+            <div class="info-card">
+                <h3>Statistics</h3>
+                <div class="info-row">
+                    <span class="info-label">Total Logins</span>
+                    <span class="info-value">{{ login_history.count }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Activities</span>
+                    <span class="info-value">{{ recent_activities.count }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Active Sessions</span>
+                    <span class="info-value">{{ active_sessions|default:"0" }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Failed Attempts</span>
+                    <span class="info-value">{{ user.failed_login_attempts }}</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Recent Activity -->
+        <h3 class="mb-3">Recent Activity</h3>
+        {% if recent_activities %}
+            <ul class="activity-list">
+                {% for activity in recent_activities %}
+                    <li class="activity-item">
+                        <span class="activity-type {{ activity.activity_type }}">
+                            {{ activity.get_activity_type_display }}
+                        </span>
+                        <div class="activity-description">
+                            {{ activity.description }}
+                        </div>
+                        <div class="activity-time">
+                            {{ activity.timestamp|date:"M d, Y H:i" }} from {{ activity.ip_address }}
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="text-center" style="color: #999; padding: 20px;">No recent activity</p>
+        {% endif %}
+        
+        <!-- Login History -->
+        <h3 class="mb-3 mt-4">Login History</h3>
+        {% if login_history %}
+            <ul class="activity-list">
+                {% for login in login_history %}
+                    <li class="activity-item">
+                        <span class="activity-type {{ login.login_successful|yesno:'login,logout' }}">
+                            {{ login.login_successful|yesno:'Successful,Failed' }}
+                        </span>
+                        <div class="activity-description">
+                            Login from {{ login.ip_address }}
+                            {% if login.failure_reason %}
+                                - <span style="color: #f56565;">{{ login.failure_reason }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="activity-time">
+                            {{ login.login_time|date:"M d, Y H:i" }}
+                            {% if login.logout_time %}
+                                • Logged out: {{ login.logout_time|date:"H:i" }}
+                            {% endif %}
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="text-center" style="color: #999; padding: 20px;">No login history</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

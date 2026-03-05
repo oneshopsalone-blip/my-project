@@ -1,0 +1,39 @@
+{% extends 'go_data/base.html' %}
+
+{% block title %}Delete Vehicle Category{% endblock %}
+
+{% block content %}
+<div class="delete-container" style="max-width: 500px; margin: 50px auto;">
+    <div class="card">
+        <div class="card-header" style="background: var(--danger-color); color: white;">
+            Confirm Delete
+        </div>
+        <div class="card-body text-center">
+            <div style="font-size: 4rem; margin-bottom: 20px;">⚠️</div>
+            <h2 style="margin-bottom: 20px;">Are you sure?</h2>
+            <p style="margin-bottom: 30px;">
+                You are about to delete vehicle category:<br>
+                <strong>{{ object.code }}</strong>
+                {% if object.name %}<br>{{ object.name }}{% endif %}
+            </p>
+            
+            {% if object.vehicles.exists %}
+            <div class="alert alert-error" style="background: #f8d7da; color: #721c24; padding: 15px; border-radius: 4px; margin-bottom: 20px;">
+                <strong>Cannot delete!</strong> This category has {{ object.vehicles.count }} vehicle(s) assigned.
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <a href="{% url 'vehicles:vehicle_category_list' %}" class="btn btn-primary">Back to List</a>
+            </div>
+            {% else %}
+            <form method="post">
+                {% csrf_token %}
+                <div style="display: flex; gap: 10px; justify-content: center;">
+                    <a href="{% url 'vehicles:vehicle_category_list' %}" class="btn btn-outline">Cancel</a>
+                    <button type="submit" class="btn btn-danger">Yes, Delete</button>
+                </div>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

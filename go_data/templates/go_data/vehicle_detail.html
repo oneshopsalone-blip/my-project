@@ -1,0 +1,83 @@
+{% extends 'go_data/base.html' %}
+
+{% block title %}Vehicle Details{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">Vehicle Details</h1>
+    <div class="page-actions">
+        <a href="{% url 'vehicles:dashboard' %}" class="btn btn-outline">← Back</a>
+        <a href="{% url 'vehicles:vehicle_update' vehicle.pk %}" class="btn btn-primary">✏️ Edit</a>
+        <a href="{% url 'vehicles:print_preview' vehicle.pk %}" class="btn btn-secondary" target="_blank">🖨️ Print</a>
+        <a href="{% url 'vehicles:vehicle_delete' vehicle.pk %}" class="btn btn-danger">🗑️ Delete</a>
+    </div>
+</div>
+
+<div class="detail-container" style="max-width: 800px; margin: 0 auto;">
+    <div class="card">
+        <div class="card-header">Vehicle Information</div>
+        <div class="card-body">
+            <table class="detail-table" style="width: 100%;">
+                <tr>
+                    <th>VIN:</th>
+                    <td>{{ vehicle.vin }}</td>
+                </tr>
+                <tr>
+                    <th>Vehicle Registration:</th>
+                    <td>{{ vehicle.vehicle_reg|default:"Not specified" }}</td>
+                </tr>
+                <tr>
+                    <th>Vehicle Type:</th>
+                    <td>{{ vehicle.vehicle_type.code }} - {{ vehicle.vehicle_type.name }}</td>
+                </tr>
+                <tr>
+                    <th>Category:</th>
+                    <td>{{ vehicle.category.code|default:"N/A" }} {{ vehicle.category.name|default:"" }}</td>
+                </tr>
+                <tr>
+                    <th>Owner:</th>
+                    <td>{{ vehicle.owner.name }} ({{ vehicle.owner.owner_id }})</td>
+                </tr>
+                <tr>
+                    <th>Expiry Date:</th>
+                    <td>
+                        <span class="badge {% if vehicle.expiry_date < now %}badge-danger{% else %}badge-success{% endif %}">
+                            {{ vehicle.expiry_date_formatted }}
+                        </span>
+                        {% if vehicle.expiry_date < now %}
+                            <span style="color: var(--danger-color);">(Expired)</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <th>Card Number:</th>
+                    <td>{{ vehicle.card_number }}</td>
+                </tr>
+                <tr>
+                    <th>Created:</th>
+                    <td>{{ vehicle.created_at|date:"M d, Y H:i" }}</td>
+                </tr>
+                <tr>
+                    <th>Last Updated:</th>
+                    <td>{{ vehicle.updated_at|date:"M d, Y H:i" }}</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+    .detail-table th {
+        width: 200px;
+        padding: 12px;
+        text-align: left;
+        color: var(--gray-color);
+        border-bottom: 1px solid var(--border-color);
+    }
+    
+    .detail-table td {
+        padding: 12px;
+        border-bottom: 1px solid var(--border-color);
+    }
+</style>
+{% endblock %}

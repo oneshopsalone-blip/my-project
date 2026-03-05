@@ -1,0 +1,276 @@
+# ============================================================================
+# Python
+# ============================================================================
+*.py[cod]
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+*.so
+.Python
+
+# ============================================================================
+# Django
+# ============================================================================
+*.log
+*.pot
+*.pid
+*.sqlite3
+*.sqlite3-journal
+db.sqlite3
+db.sqlite3-journal
+media/
+staticfiles/
+static/
+*.mo
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Django migrations (uncomment if you want to ignore migration files)
+# */migrations/*.py
+# !*/migrations/__init__.py
+
+# ============================================================================
+# Virtual Environment
+# ============================================================================
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+*.venv
+virtualenv/
+pip-log.txt
+pip-delete-this-directory.txt
+.python-version
+
+# ============================================================================
+# IDE / Editors
+# ============================================================================
+# VS Code
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# PyCharm
+.idea/
+*.iml
+*.iws
+.idea_modules/
+.DS_Store
+
+# Vim
+*.swp
+*.swo
+*~
+*.un~
+Session.vim
+.netrwhist
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# ============================================================================
+# Environment Variables
+# ============================================================================
+.env
+.env.local
+.env.production
+.env.development
+.env.staging
+.env.*.local
+*.env
+!.env.example
+
+# ============================================================================
+# Testing
+# ============================================================================
+.coverage
+.coverage.*
+*.cover
+*.py,cover
+.pytest_cache/
+htmlcov/
+.tox/
+.cache/
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+test.db
+test.sqlite3
+test_*.py
+test_*.sqlite3
+
+# ============================================================================
+# Static Files
+# ============================================================================
+static/
+staticfiles/
+media/
+uploads/
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.svg
+*.ico
+*.webp
+*.mp4
+*.mp3
+*.pdf
+*.doc
+*.docx
+*.xls
+*.xlsx
+!static/.gitkeep
+!media/.gitkeep
+
+# ============================================================================
+# Celery
+# ============================================================================
+celerybeat-schedule
+celerybeat.pid
+*.celeryd
+
+# ============================================================================
+# Logs
+# ============================================================================
+logs/
+*.log
+log/
+*.log.*
+!logs/.gitkeep
+
+# ============================================================================
+# OS Generated Files
+# ============================================================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*.bak
+*.swp
+*.tmp
+*~
+
+# ============================================================================
+# Project Specific
+# ============================================================================
+# Database backups
+*.backup
+*.dump
+db.sqlite3.backup
+db.sqlite3.bak
+
+# Secret files
+secrets.py
+secret_key.txt
+*.key
+*.pem
+*.crt
+*.cert
+
+# Uploaded files
+uploads/
+user_uploads/
+private/
+
+# ============================================================================
+# Docker
+# ============================================================================
+.dockerignore
+docker-compose.override.yml
+Dockerfile
+Dockerfile.dev
+*.pid
+*.sock
+
+# ============================================================================
+# Kubernetes
+# ============================================================================
+*.kubeconfig
+*.kubeconfig.*
+helm/charts/*.tgz
+
+# ============================================================================
+# Package manager files
+# ============================================================================
+# pip
+pip-selfcheck.json
+
+# npm
+node_modules/
+npm-debug.log
+package-lock.json
+yarn.lock
+yarn-error.log
+
+# ============================================================================
+# Security
+# ============================================================================
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.truststore
+*.key
+*.crt
+*.pem
+*.cer
+*.der
+*.csr
+*.srl
+
+# ============================================================================
+# Temporary files
+# ============================================================================
+tmp/
+temp/
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# ============================================================================
+# Backup files
+# ============================================================================
+*.bak
+*.backup
+*.old
+*.orig
+*.save
+*.part
+
+# ============================================================================
+# Documentation
+# ============================================================================
+docs/_build/
+docs/build/
+docs/source/.doctrees/
+site/
+
+# ============================================================================
+# Optional: Keep empty directories with .gitkeep
+# ============================================================================
+!.gitkeep

@@ -1,0 +1,735 @@
+{% extends 'go_data/base.html' %}
+{% load static %}
+{% load vehicle_extras %}
+
+{% block title %}Vehicle Dashboard{% endblock %}
+
+{% block extra_css %}
+<style>
+    .dashboard-container {
+        display: grid;
+        grid-template-columns: 300px 1fr;
+        gap: 20px;
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    
+    /* Sidebar - Owner Print Stats */
+    .stats-sidebar {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        height: fit-content;
+    }
+    
+    .sidebar-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 15px;
+        border-radius: 8px 8px 0 0;
+    }
+    
+    .sidebar-header h3 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: normal;
+        opacity: 0.9;
+    }
+    
+    .sidebar-header h2 {
+        margin: 5px 0 0 0;
+        font-size: 24px;
+    }
+    
+    .date-filter {
+        padding: 15px;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .date-filter h4 {
+        margin: 0 0 10px 0;
+        color: #333;
+    }
+    
+    .filter-group {
+        margin-bottom: 10px;
+    }
+    
+    .filter-group label {
+        display: block;
+        margin-bottom: 5px;
+        color: #666;
+        font-size: 12px;
+        font-weight: bold;
+    }
+    
+    .filter-input {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+    
+    .filter-btn {
+        width: 100%;
+        padding: 10px;
+        background: #4CAF50;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: bold;
+        margin-top: 10px;
+    }
+    
+    .filter-btn:hover {
+        background: #45a049;
+    }
+    
+    .filter-btn.reset {
+        background: #f44336;
+        margin-top: 5px;
+    }
+    
+    .filter-btn.reset:hover {
+        background: #da190b;
+    }
+    
+    .owner-stats-list {
+        padding: 15px;
+        max-height: 400px;
+        overflow-y: auto;
+    }
+    
+    .owner-stat-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px;
+        border-bottom: 1px solid #eee;
+        cursor: pointer;
+        transition: background 0.2s;
+        border-radius: 4px;
+    }
+    
+    .owner-stat-item:hover {
+        background: #f5f5f5;
+    }
+    
+    .owner-stat-item.active {
+        background: #e3f2fd;
+        border-left: 3px solid #2196F3;
+    }
+    
+    .owner-info {
+        flex: 1;
+    }
+    
+    .owner-name {
+        font-weight: bold;
+        color: #333;
+    }
+    
+    .owner-id {
+        font-size: 11px;
+        color: #999;
+        margin-top: 2px;
+    }
+    
+    .print-count {
+        background: #4CAF50;
+        color: white;
+        padding: 5px 10px;
+        border-radius: 20px;
+        font-weight: bold;
+        font-size: 14px;
+    }
+    
+    .print-count.zero {
+        background: #f44336;
+    }
+    
+    .total-prints {
+        padding: 15px;
+        background: #f9f9f9;
+        border-top: 1px solid #eee;
+        text-align: center;
+        font-weight: bold;
+        color: #333;
+    }
+    
+    .total-prints span {
+        color: #4CAF50;
+        font-size: 20px;
+        margin-left: 10px;
+    }
+    
+    /* Main Content - Vehicle List */
+    .vehicle-list {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+    
+    .list-header {
+        padding: 20px;
+        border-bottom: 1px solid #eee;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .list-header h2 {
+        margin: 0;
+        color: #333;
+    }
+    
+    .add-btn {
+        background: #4CAF50;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 4px;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+    
+    .add-btn:hover {
+        background: #45a049;
+    }
+    
+    .search-box {
+        padding: 15px 20px;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .search-box input {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+    
+    .vehicle-items {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+    
+    .vehicle-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px 20px;
+        border-bottom: 1px solid #f0f0f0;
+        transition: background 0.2s;
+    }
+    
+    .vehicle-item:hover {
+        background: #f9f9f9;
+    }
+    
+    .vehicle-info {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        flex: 1;
+        flex-wrap: wrap;
+    }
+    
+    .vehicle-badge {
+        background: #2196F3;
+        color: white;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: bold;
+    }
+    
+    .vehicle-reg {
+        font-size: 18px;
+        font-weight: bold;
+        color: #333;
+    }
+    
+    .vehicle-owner {
+        color: #666;
+        font-size: 14px;
+    }
+    
+    .vehicle-owner small {
+        color: #999;
+    }
+    
+    .expiry-badge {
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: bold;
+        margin-left: 10px;
+        white-space: nowrap;
+    }
+    
+    .expiry-badge.valid {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .expiry-badge.expiring {
+        background: #fff3cd;
+        color: #856404;
+    }
+    
+    .expiry-badge.expired {
+        background: #f8d7da;
+        color: #721c24;
+    }
+    
+    .action-buttons {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+    
+    .action-btn {
+        padding: 6px 12px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 13px;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+    }
+    
+    .btn-print {
+        background: #4CAF50;
+        color: white;
+    }
+    
+    .btn-edit {
+        background: #2196F3;
+        color: white;
+    }
+    
+    .btn-delete {
+        background: #f44336;
+        color: white;
+    }
+    
+    .btn-print:hover { background: #45a049; }
+    .btn-edit:hover { background: #1976D2; }
+    .btn-delete:hover { background: #da190b; }
+    
+    .empty-state {
+        text-align: center;
+        padding: 60px;
+        color: #999;
+    }
+    
+    .empty-state h3 {
+        margin: 20px 0 10px;
+        color: #333;
+    }
+    
+    /* Print counts header */
+    .print-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+        padding: 0 5px;
+    }
+    
+    .print-header h4 {
+        margin: 0;
+        color: #333;
+    }
+    
+    .clear-date-btn {
+        background: none;
+        border: none;
+        color: #f44336;
+        cursor: pointer;
+        font-size: 12px;
+        text-decoration: underline;
+    }
+    
+    .clear-date-btn:hover {
+        color: #da190b;
+    }
+    
+    .date-range-info {
+        background: #e3f2fd;
+        padding: 10px 15px;
+        margin: 10px 0;
+        border-radius: 4px;
+        font-size: 13px;
+        color: #1976D2;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .date-range-info strong {
+        font-weight: bold;
+    }
+    
+    .close-range {
+        cursor: pointer;
+        font-weight: bold;
+        font-size: 16px;
+    }
+    
+    .close-range:hover {
+        color: #f44336;
+    }
+    
+    /* Pagination Styles */
+    .pagination {
+        display: flex;
+        justify-content: center;
+        gap: 5px;
+        padding: 20px;
+        border-top: 1px solid #eee;
+    }
+    
+    .page-link {
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        text-decoration: none;
+        color: #333;
+    }
+    
+    .page-link:hover {
+        background: #f5f5f5;
+    }
+    
+    .page-link.active {
+        background: #2196F3;
+        color: white;
+        border-color: #2196F3;
+    }
+    
+    @media (max-width: 768px) {
+        .dashboard-container {
+            grid-template-columns: 1fr;
+        }
+        
+        .vehicle-item {
+            flex-direction: column;
+            gap: 10px;
+            align-items: flex-start;
+        }
+        
+        .action-buttons {
+            width: 100%;
+            justify-content: flex-end;
+        }
+        
+        .vehicle-info {
+            flex-wrap: wrap;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Sidebar: Owner Print Stats -->
+    <div class="stats-sidebar">
+        <div class="sidebar-header">
+            <h3>📊 PRINT STATISTICS</h3>
+            <h2>{{ total_vehicles }} Vehicles</h2>
+        </div>
+        
+        <!-- Date Filter -->
+        <div class="date-filter">
+            <h4>Filter by Date</h4>
+            <div class="filter-group">
+                <label>From:</label>
+                <input type="date" id="dateFrom" class="filter-input" value="{{ date_from|date:'Y-m-d' }}">
+            </div>
+            <div class="filter-group">
+                <label>To:</label>
+                <input type="date" id="dateTo" class="filter-input" value="{{ date_to|date:'Y-m-d' }}">
+            </div>
+            <button class="filter-btn" onclick="filterByDate()">Apply Date Filter</button>
+            <button class="filter-btn reset" onclick="resetDateFilter()">Reset</button>
+        </div>
+        
+        <!-- Active Date Range Display -->
+        <div id="dateRangeInfo" class="date-range-info" style="{% if date_from and date_to %}display: flex;{% else %}display: none;{% endif %}">
+            <span>📅 <span id="dateRangeText">{% if date_from and date_to %}{{ date_from|date:"M d, Y" }} - {{ date_to|date:"M d, Y" }}{% endif %}</span></span>
+            <span class="close-range" onclick="resetDateFilter()">✕</span>
+        </div>
+        
+        <!-- Owner Print Counts -->
+        <div class="print-header">
+            <h4>👤 Owner Print Counts</h4>
+        </div>
+        
+        <div class="owner-stats-list" id="ownerStats">
+            {% for owner in owners_with_counts %}
+            <div class="owner-stat-item {% if selected_owner_id|stringformat:'s' == owner.id|stringformat:'s' %}active{% endif %}" 
+                 onclick="filterByOwner({{ owner.id }})">
+                <div class="owner-info">
+                    <div class="owner-name">{{ owner.name }}</div>
+                    <div class="owner-id">{{ owner.owner_id }}</div>
+                </div>
+                <div class="print-count {% if owner.print_count == 0 %}zero{% endif %}">
+                    {{ owner.print_count }}
+                </div>
+            </div>
+            {% empty %}
+            <div class="empty-state" style="padding: 20px;">
+                <p>No owners found</p>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div class="total-prints">
+            TOTAL PRINTS <span id="totalPrints">{{ total_prints|default:"0" }}</span>
+        </div>
+    </div>
+    
+    <!-- Main Content: Vehicle List -->
+    <div class="vehicle-list">
+        <div class="list-header">
+            <h2>🚗 Vehicle List</h2>
+            <a href="{% url 'go_data:vehicle_create' %}" class="add-btn">➕ Add Vehicle</a>
+        </div>
+        
+        <!-- Search -->
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="Search by registration, type, owner..." value="{{ search_query|default:'' }}">
+        </div>
+        
+        <!-- Vehicle Items -->
+        <ul class="vehicle-items" id="vehicleList">
+            {% for vehicle in vehicles %}
+            <li class="vehicle-item">
+                <div class="vehicle-info">
+                    <span class="vehicle-badge">{{ vehicle.vehicle_type.code|default:"N/A" }}</span>
+                    <span class="vehicle-reg">{{ vehicle.vehicle_reg|default:vehicle.vin }}</span>
+                    <span class="vehicle-owner">
+                        {{ vehicle.owner.name|default:"No Owner" }}
+                        {% if vehicle.owner.owner_id %}
+                        <small>({{ vehicle.owner.owner_id }})</small>
+                        {% endif %}
+                    </span>
+                    
+                    {% if vehicle.expiry_date %}
+                        {% if vehicle.expiry_date < now %}
+                            <span class="expiry-badge expired">Expired</span>
+                        {% elif vehicle.expiry_date < now|add_days:30 %}
+                            <span class="expiry-badge expiring">Expiring Soon</span>
+                        {% else %}
+                            <span class="expiry-badge valid">Valid</span>
+                        {% endif %}
+                    {% endif %}
+                </div>
+                
+                <div class="action-buttons">
+                    <a href="{% url 'vehicles:print_preview' vehicle.pk %}" 
+                       class="action-btn btn-print" 
+                       target="_blank"
+                       onclick="trackPrint({{ vehicle.pk }})">
+                        🖨️ Print
+                    </a>
+                    <a href="{% url 'vehicles:vehicle_update' vehicle.pk %}" class="action-btn btn-edit">
+                        ✏️ Edit
+                    </a>
+                    <a href="{% url 'vehicles:vehicle_delete' vehicle.pk %}" class="action-btn btn-delete" 
+                       onclick="return confirm('Are you sure you want to delete this vehicle?');">
+                        🗑️ Delete
+                    </a>
+                </div>
+            </li>
+            {% empty %}
+            <li class="empty-state">
+                <div style="font-size: 48px;">🚗</div>
+                <h3>No Vehicles Found</h3>
+                <p>Get started by adding your first vehicle.</p>
+                <a href="{% url 'go_data:vehicle_create' %}" class="add-btn" style="display: inline-block;">Add Vehicle</a>
+            </li>
+            {% endfor %}
+        </ul>
+        
+        <!-- Pagination -->
+        {% if is_paginated %}
+        <div class="pagination">
+            {% if page_obj.has_previous %}
+                <a href="?{% if selected_owner_id %}owner={{ selected_owner_id }}&{% endif %}{% if date_from %}from={{ date_from|date:'Y-m-d' }}&{% endif %}{% if date_to %}to={{ date_to|date:'Y-m-d' }}&{% endif %}page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}" class="page-link">←</a>
+            {% endif %}
+            
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                    <span class="page-link active">{{ num }}</span>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <a href="?{% if selected_owner_id %}owner={{ selected_owner_id }}&{% endif %}{% if date_from %}from={{ date_from|date:'Y-m-d' }}&{% endif %}{% if date_to %}to={{ date_to|date:'Y-m-d' }}&{% endif %}page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}" class="page-link">{{ num }}</a>
+                {% endif %}
+            {% endfor %}
+            
+            {% if page_obj.has_next %}
+                <a href="?{% if selected_owner_id %}owner={{ selected_owner_id }}&{% endif %}{% if date_from %}from={{ date_from|date:'Y-m-d' }}&{% endif %}{% if date_to %}to={{ date_to|date:'Y-m-d' }}&{% endif %}page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}" class="page-link">→</a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    // Get CSRF token from cookie
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    // Track print events
+    function trackPrint(vehicleId) {
+        console.log('Printing vehicle:', vehicleId);
+        
+        // Send to server to track print count
+        fetch(`/vehicle/${vehicleId}/track-print/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                timestamp: new Date().toISOString()
+            })
+        }).catch(error => console.error('Error tracking print:', error));
+    }
+    
+    // Build URL with parameters
+    function buildUrl(params) {
+        let url = window.location.pathname;
+        const searchParams = new URLSearchParams();
+        
+        for (let [key, value] of Object.entries(params)) {
+            if (value) {
+                searchParams.set(key, value);
+            }
+        }
+        
+        const queryString = searchParams.toString();
+        return url + (queryString ? '?' + queryString : '');
+    }
+    
+    // Filter by date
+    function filterByDate() {
+        const from = document.getElementById('dateFrom').value;
+        const to = document.getElementById('dateTo').value;
+        
+        if (!from || !to) {
+            alert('Please select both dates');
+            return;
+        }
+        
+        if (new Date(from) > new Date(to)) {
+            alert('From date cannot be after To date');
+            return;
+        }
+        
+        const params = {
+            from: from,
+            to: to,
+            owner: new URLSearchParams(window.location.search).get('owner'),
+            search: new URLSearchParams(window.location.search).get('search')
+        };
+        
+        window.location.href = buildUrl(params);
+    }
+    
+    // Reset date filter
+    function resetDateFilter() {
+        const currentParams = new URLSearchParams(window.location.search);
+        const params = {
+            owner: currentParams.get('owner'),
+            search: currentParams.get('search')
+        };
+        
+        window.location.href = buildUrl(params);
+    }
+    
+    // Filter by owner
+    function filterByOwner(ownerId) {
+        const currentParams = new URLSearchParams(window.location.search);
+        const params = {
+            owner: currentParams.get('owner') == ownerId ? null : ownerId,
+            from: currentParams.get('from'),
+            to: currentParams.get('to'),
+            search: currentParams.get('search')
+        };
+        
+        window.location.href = buildUrl(params);
+    }
+    
+    // Live search with debounce
+    let searchTimeout;
+    document.getElementById('searchInput').addEventListener('keyup', function(e) {
+        clearTimeout(searchTimeout);
+        
+        if (e.key === 'Enter') {
+            performSearch(this.value);
+        } else {
+            searchTimeout = setTimeout(() => {
+                performSearch(this.value);
+            }, 500);
+        }
+    });
+    
+    function performSearch(searchTerm) {
+        const currentParams = new URLSearchParams(window.location.search);
+        const params = {
+            search: searchTerm || null,
+            owner: currentParams.get('owner'),
+            from: currentParams.get('from'),
+            to: currentParams.get('to')
+        };
+        
+        window.location.href = buildUrl(params);
+    }
+    
+    // Handle pagination links with current filters
+    document.querySelectorAll('.page-link').forEach(link => {
+        link.addEventListener('click', function(e) {
+            if (this.tagName === 'A') {
+                e.preventDefault();
+                const url = new URL(this.href);
+                const currentParams = new URLSearchParams(window.location.search);
+                
+                // Preserve all current filters
+                ['owner', 'from', 'to', 'search'].forEach(param => {
+                    if (currentParams.has(param) && !url.searchParams.has(param)) {
+                        url.searchParams.set(param, currentParams.get(param));
+                    }
+                });
+                
+                window.location.href = url.toString();
+            }
+        });
+    });
+</script>
+{% endblock %}

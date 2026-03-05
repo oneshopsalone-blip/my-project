@@ -1,0 +1,356 @@
+{% extends 'go_data/base.html' %}
+{% load static %}
+
+{% block title %}Login - Vehicle Management System{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        --primary-color: #667eea;
+        --secondary-color: #764ba2;
+        --error-color: #f44336;
+        --success-color: #4caf50;
+        --text-primary: #333;
+        --text-secondary: #666;
+        --border-color: #e0e0e0;
+        --shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        --transition: all 0.3s ease;
+    }
+
+    .login-container {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--primary-gradient);
+        padding: 20px;
+    }
+    
+    .login-card {
+        background: white;
+        border-radius: 15px;
+        box-shadow: var(--shadow);
+        width: 100%;
+        max-width: 400px;
+        padding: 40px;
+        animation: slideIn 0.5s ease;
+    }
+    
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .login-header {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+    
+    .login-header h2 {
+        color: var(--text-primary);
+        font-size: 28px;
+        margin-bottom: 10px;
+        font-weight: 600;
+    }
+    
+    .login-header p {
+        color: var(--text-secondary);
+        font-size: 14px;
+    }
+    
+    .form-group {
+        margin-bottom: 20px;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        color: var(--text-primary);
+        font-weight: 500;
+        font-size: 14px;
+    }
+    
+    .form-control {
+        width: 100%;
+        padding: 12px 15px;
+        border: 2px solid var(--border-color);
+        border-radius: 8px;
+        font-size: 14px;
+        transition: var(--transition);
+        box-sizing: border-box;
+    }
+    
+    .form-control:focus {
+        border-color: var(--primary-color);
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    .form-control.is-invalid {
+        border-color: var(--error-color);
+    }
+    
+    .form-control.is-invalid:focus {
+        box-shadow: 0 0 0 3px rgba(244, 67, 54, 0.1);
+    }
+    
+    .login-btn {
+        width: 100%;
+        padding: 12px;
+        background: var(--primary-gradient);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: var(--transition);
+        margin-top: 10px;
+    }
+    
+    .login-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+    }
+    
+    .login-btn:active {
+        transform: translateY(0);
+    }
+    
+    .alert {
+        padding: 12px 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        font-size: 14px;
+        animation: slideIn 0.3s ease;
+    }
+    
+    .alert-error {
+        background: #fee;
+        color: #c33;
+        border: 1px solid #fcc;
+    }
+    
+    .alert-success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+    
+    .alert-info {
+        background: #d1ecf1;
+        color: #0c5460;
+        border: 1px solid #bee5eb;
+    }
+    
+    .alert-warning {
+        background: #fff3cd;
+        color: #856404;
+        border: 1px solid #ffeeba;
+    }
+    
+    .form-footer {
+        text-align: center;
+        margin-top: 20px;
+    }
+    
+    .form-footer a {
+        color: var(--primary-color);
+        text-decoration: none;
+        font-size: 14px;
+        transition: var(--transition);
+    }
+    
+    .form-footer a:hover {
+        color: var(--secondary-color);
+        text-decoration: underline;
+    }
+    
+    .security-badge {
+        text-align: center;
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 1px solid var(--border-color);
+        color: #999;
+        font-size: 12px;
+    }
+    
+    .remember-me {
+        display: flex;
+        align-items: center;
+        margin: 15px 0;
+    }
+    
+    .remember-me input {
+        width: auto;
+        margin-right: 8px;
+        cursor: pointer;
+    }
+    
+    .remember-me label {
+        margin-bottom: 0;
+        cursor: pointer;
+        font-size: 14px;
+        color: var(--text-secondary);
+    }
+    
+    .help-text {
+        font-size: 12px;
+        color: #999;
+        margin-top: 5px;
+    }
+    
+    .errorlist {
+        list-style: none;
+        padding: 0;
+        margin: 5px 0 0 0;
+        color: var(--error-color);
+        font-size: 12px;
+    }
+    
+    /* Loading spinner */
+    .btn-loading {
+        position: relative;
+        pointer-events: none;
+        opacity: 0.8;
+    }
+    
+    .btn-loading:after {
+        content: '';
+        position: absolute;
+        width: 20px;
+        height: 20px;
+        top: 50%;
+        left: 50%;
+        margin-left: -10px;
+        margin-top: -10px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spinner 0.6s linear infinite;
+    }
+    
+    @keyframes spinner {
+        to { transform: rotate(360deg); }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="login-container">
+    <div class="login-card">
+        <div class="login-header">
+            <h2>🚗 Vehicle Management System</h2>
+            <p>Please login to access your dashboard</p>
+        </div>
+        
+        <!-- Display messages -->
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+        
+        <!-- Display form errors if using form -->
+        {% if form and form.non_field_errors %}
+            <div class="alert alert-error">
+                {% for error in form.non_field_errors %}
+                    {{ error }}
+                {% endfor %}
+            </div>
+        {% endif %}
+        
+        <!-- Login Form -->
+        <form method="post" action="{% url 'accounts:login' %}" id="loginForm">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label for="username">Email Address</label>
+                <input type="email" 
+                       name="username" 
+                       id="username" 
+                       class="form-control {% if form and form.username.errors %}is-invalid{% endif %}"
+                       placeholder="Enter your email" 
+                       value="{{ request.POST.username|default:'' }}"
+                       required 
+                       autofocus>
+                {% if form and form.username.errors %}
+                    <ul class="errorlist">
+                        {% for error in form.username.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" 
+                       name="password" 
+                       id="password" 
+                       class="form-control {% if form and form.password.errors %}is-invalid{% endif %}"
+                       placeholder="Enter your password" 
+                       required>
+                {% if form and form.password.errors %}
+                    <ul class="errorlist">
+                        {% for error in form.password.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+            
+            <div class="remember-me">
+                <input type="checkbox" name="remember_me" id="remember_me">
+                <label for="remember_me">Remember me on this device</label>
+            </div>
+            
+            <button type="submit" class="login-btn" id="submitBtn">
+                <span class="btn-text">Login</span>
+            </button>
+        </form>
+        
+        <div class="form-footer">
+            <a href="{% url 'accounts:password_reset' %}">Forgot password?</a>
+        </div>
+        
+        <div class="security-badge">
+            <i>🔒</i> Secure login with encryption
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Add loading spinner on form submit
+    document.getElementById('loginForm').addEventListener('submit', function(e) {
+        const btn = document.getElementById('submitBtn');
+        btn.classList.add('btn-loading');
+        btn.querySelector('.btn-text').textContent = 'Logging in...';
+    });
+
+    // Auto-hide alerts after 5 seconds
+    document.addEventListener('DOMContentLoaded', function() {
+        const alerts = document.querySelectorAll('.alert');
+        alerts.forEach(alert => {
+            setTimeout(() => {
+                alert.style.transition = 'opacity 0.5s';
+                alert.style.opacity = '0';
+                setTimeout(() => {
+                    alert.remove();
+                }, 500);
+            }, 5000);
+        });
+    });
+</script>
+{% endblock %}

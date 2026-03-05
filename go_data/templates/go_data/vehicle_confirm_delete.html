@@ -1,0 +1,29 @@
+{% extends 'go_data/base.html' %}
+
+{% block title %}Delete Vehicle{% endblock %}
+
+{% block content %}
+<div class="delete-container" style="max-width: 500px; margin: 50px auto;">
+    <div class="card">
+        <div class="card-header" style="background: var(--danger-color); color: white;">
+            Confirm Delete
+        </div>
+        <div class="card-body text-center">
+            <div style="font-size: 4rem; margin-bottom: 20px;">⚠️</div>
+            <h2 style="margin-bottom: 20px;">Are you sure?</h2>
+            <p style="margin-bottom: 30px;">
+                You are about to delete vehicle:<br>
+                <strong>{{ vehicle.vehicle_type.code }} {{ vehicle.vehicle_reg|default:vehicle.vin }}</strong>
+            </p>
+            
+            <form method="post">
+                {% csrf_token %}
+                <div style="display: flex; gap: 10px; justify-content: center;">
+                    <a href="{% url 'vehicles:dashboard' %}" class="btn btn-outline">Cancel</a>
+                    <button type="submit" class="btn btn-danger">Yes, Delete</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
