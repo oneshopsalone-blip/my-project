@@ -3,19 +3,25 @@
 # Exit on error
 set -e
 
-# Apply database migrations
-echo "Applying database migrations..."
+echo "🚀 Starting deployment..."
+
+# Print Python version
+python --version
+
+# Run migrations
+echo "📦 Running database migrations..."
 python manage.py migrate --noinput
 
 # Collect static files
-echo "Collecting static files..."
+echo "🎨 Collecting static files..."
 python manage.py collectstatic --noinput
 
-# Create superuser if it doesn't exist (optional)
-echo "from django.contrib.auth import get_user_model; User = get_user_model(); User.objects.filter(email='admin@example.com').exists() or User.objects.create_superuser('admin@example.com', 'adminpassword')" | python manage.py shell || true
-
 # Start the application
-echo "Starting application..."
-exec "$@"
-
-
+echo "✅ Starting Gunicorn..."
+exec gunicorn data.wsgi:application \
+    --bind 0.0.0.0:$PORT \
+    --workers 4 \
+    --threads 2 \
+    --timeout 120 \
+    --access-logfile - \
+    --error-logfile -
