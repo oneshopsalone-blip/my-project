@@ -1,0 +1,24 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Python files
+*.py text diff=python
+
+# Django templates
+*.html text diff=html
+
+# CSS and JavaScript
+*.css text diff=css
+*.js text diff=javascript
+
+# Documentation
+*.md text
+*.txt text
+
+# Images
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
