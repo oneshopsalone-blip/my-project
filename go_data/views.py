@@ -70,6 +70,9 @@ class VehicleDashboardView(LoginRequiredMixin, ListView):
     context_object_name = 'vehicles'
     paginate_by = 20
     login_url = 'accounts:login'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
     
     def get_queryset(self):
         """Apply search and filter to queryset"""
@@ -133,6 +136,9 @@ class VehicleDashboardView(LoginRequiredMixin, ListView):
         owners_with_counts.sort(key=lambda x: x['print_count'], reverse=True)
         
         context.update({
+            'total_types': VehicleType.objects.count(),
+            'total_categories': VehicleCategory.objects.count(),
+            'total_owners': Owner.objects.count(),
             'owners_with_counts': owners_with_counts,
             'total_prints': total_prints,
             'selected_owner_id': self.request.GET.get('owner'),

@@ -15,6 +15,8 @@ import os
 from datetime import timedelta
 from django.contrib.messages import constants as messages
 
+import dj_database_url
+
 
 # ============================================================================
 # BASE DIRECTORIES
@@ -117,12 +119,23 @@ WSGI_APPLICATION = 'data.wsgi.application'
 # DATABASE CONFIGURATION
 # ============================================================================
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+if os.environ.get('DATABASE_URL'):
+    # Production - PostgreSQL on Render
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=os.environ.get('DATABASE_URL'),
+            conn_max_age=600,
+            ssl_require=True
+        )
     }
-}
+else:
+    # Development - SQLite
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 # For production, use PostgreSQL:
 # DATABASES = {
@@ -152,7 +165,7 @@ AUTHENTICATION_BACKENDS = [
 
 # Login/Logout URLs
 LOGIN_URL = 'accounts:login'
-LOGIN_REDIRECT_URL = 'vehicles:dashboard'
+LOGIN_REDIRECT_URL = 'go_data:dashboard'
 LOGOUT_REDIRECT_URL = 'accounts:login'
 
 
@@ -287,13 +300,26 @@ if not DEBUG:
 # STATIC & MEDIA FILES
 # ============================================================================
 
-STATIC_URL = 'static/'
+# Static files (CSS, JavaScript, Images)
+STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [BASE_DIR / 'static'] if (BASE_DIR / 'static').exists() else []
 
-# Media files (for uploaded content, PDFs, etc.)
+# Media files
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+# Security settings for production
+if not DEBUG:
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    
+    # WhiteNoise configuration
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 
 # ============================================================================
