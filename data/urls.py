@@ -15,19 +15,15 @@ from django.shortcuts import render
 
 def custom_404_view(request, exception=None):
     """Custom 404 page"""
-    return render(request, '404.html', status=404)
+    return render(request, 'accounts/404.html', status=404)
 
 def custom_500_view(request):
     """Custom 500 page"""
-    return render(request, '500.html', status=500)
+    return render(request, 'accounts/500.html', status=500)
 
 def custom_403_view(request, exception=None):
     """Custom 403 page"""
-    return render(request, '403.html', status=403)
-
-def custom_400_view(request, exception=None):
-    """Custom 400 page"""
-    return render(request, '400.html', status=400)
+    return render(request, 'accounts/403.html', status=403)
 
 
 # ============================================================================
@@ -99,4 +95,3 @@ if settings.DEBUG:
 handler404 = 'data.urls.custom_404_view'
 handler500 = 'data.urls.custom_500_view'
 handler403 = 'data.urls.custom_403_view'
-handler400 = 'data.urls.custom_400_view'
