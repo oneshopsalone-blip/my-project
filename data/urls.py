@@ -26,6 +26,8 @@ def custom_403_view(request, exception=None):
     return render(request, 'accounts/403.html', status=403)
 
 
+
+
 # ============================================================================
 # Main URL Patterns
 # ============================================================================
@@ -40,8 +42,6 @@ urlpatterns = [
     # Vehicle Management
     path('', include('go_data.urls')),
     
-    # Health Check
-    path('health/', TemplateView.as_view(template_name='health.html'), name='health'),
 ]
 
 # ============================================================================
@@ -95,3 +95,30 @@ if settings.DEBUG:
 handler404 = 'data.urls.custom_404_view'
 handler500 = 'data.urls.custom_500_view'
 handler403 = 'data.urls.custom_403_view'
+
+from django.http import JsonResponse
+from django.db import connections
+from django.db.utils import OperationalError
+
+def health_check(request):
+    """Health check endpoint to verify database connection"""
+    status = "healthy"
+    db_status = "connected"
+    
+    # Check database connection
+    try:
+        connections['default'].cursor()
+    except OperationalError:
+        db_status = "disconnected"
+        status = "unhealthy"
+    
+    return JsonResponse({
+        'status': status,
+        'database': db_status,
+        'debug': settings.DEBUG,
+        'allowed_hosts': settings.ALLOWED_HOSTS,
+    })
+
+urlpatterns += [
+    path('health/', health_check, name='health_check'),
+]
