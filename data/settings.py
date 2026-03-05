@@ -30,23 +30,20 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY SETTINGS
 # ============================================================================
 
-# SECURITY WARNING: keep the secret key used in production secret!
-# Use environment variable in production, fallback for development
-SECRET_KEY = os.environ.get(
-    'DJANGO_SECRET_KEY', 
-    'django-insecure-+v%8zsq)6a8+3)vj94vver)@dh(u$4a3#k#i57%8ego9*0yu@x'
-)
-
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DJANGO_DEBUG', 'True') == 'True'
 
 # Get ALLOWED_HOSTS from environment or use default
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1,www.wemoney.it.com,wemoney.it.com').split(',')
-
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1,wemoney.it.com,my-project-8nwz.onrender.com').split(',')
 
 
 # Admin URL masking - Set this to a random string in production
 ADMIN_URL = os.environ.get('ADMIN_URL', 'admin-secret-path-12345')
+
+
+RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
+if RENDER_EXTERNAL_HOSTNAME:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
 
 # Site ID for allauth
 SITE_ID = 1
