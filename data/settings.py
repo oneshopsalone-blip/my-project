@@ -29,12 +29,31 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # ============================================================================
 # SECURITY SETTINGS
 # ============================================================================
+# Security
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY')
+if not SECRET_KEY:
+    raise ValueError("DJANGO_SECRET_KEY environment variable not set!")
+
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DJANGO_DEBUG', 'True') == 'True'
 
 # Get ALLOWED_HOSTS from environment or use default
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1,wemoney.it.com,my-project-8nwz.onrender.com').split(',')
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',') if os.environ.get('ALLOWED_HOSTS') else []
+RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
+if RENDER_EXTERNAL_HOSTNAME:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
+ALLOWED_HOSTS.extend(['localhost', '127.0.0.1', '.onrender.com'])
+ALLOWED_HOSTS = [host for host in ALLOWED_HOSTS if host]
+
+
+# CSRF Trusted Origins
+CSRF_TRUSTED_ORIGINS = [
+    'https://wemoney.it.com',
+    'https://*.onrender.com',
+]
+if RENDER_EXTERNAL_HOSTNAME:
+    CSRF_TRUSTED_ORIGINS.append(f'https://{RENDER_EXTERNAL_HOSTNAME}')
 
 
 # Admin URL masking - Set this to a random string in production
@@ -79,6 +98,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "debug_toolbar.middleware.DebugToolbarMiddleware",
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -207,6 +227,9 @@ PASSWORD_HASHERS = [
 
 # Login with email only (no username)
 ACCOUNT_LOGIN_METHODS = {'email'}
+
+# Admin URL masking
+ADMIN_URL = os.environ.get('ADMIN_URL', 'admin-secret-path-12345')
 
 # Signup with email only (no username field)
 ACCOUNT_SIGNUP_FIELDS = [

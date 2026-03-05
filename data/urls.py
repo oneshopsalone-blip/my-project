@@ -16,14 +16,6 @@ from django.shortcuts import render
 from django.urls import include, path
 from django.views.generic import TemplateView
 
-# =============================================================================
-# Custom Error Views
-# =============================================================================
-
-def custom_404_view(request, exception=None):
-    """Custom 404 error page."""
-    return render(request, "errors/404.html", status=404)
-
 
 # =============================================================================
 # Core URL Configuration
