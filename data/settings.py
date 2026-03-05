@@ -15,6 +15,7 @@ import os
 from datetime import timedelta
 from django.contrib.messages import constants as messages
 
+
 # ============================================================================
 # BASE DIRECTORIES
 # ============================================================================
@@ -37,7 +38,9 @@ SECRET_KEY = os.environ.get(
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DJANGO_DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1', 'www.wemoney.it.com', 'wemoney.it.com').split(',')
+
+
 
 # Admin URL masking - Set this to a random string in production
 ADMIN_URL = os.environ.get('ADMIN_URL', 'admin-secret-path-12345')
