@@ -5,8 +5,15 @@ set -e
 
 echo "🚀 Starting deployment..."
 
-# Print Python version
-python --version
+# Print environment info
+echo "Python version: $(python --version)"
+echo "Current directory: $(pwd)"
+
+# Create necessary directories
+echo "📁 Creating directories..."
+mkdir -p staticfiles
+mkdir -p media
+mkdir -p logs
 
 # Run migrations
 echo "📦 Running database migrations..."
