@@ -38,7 +38,8 @@ SECRET_KEY = os.environ.get(
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DJANGO_DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1', 'www.wemoney.it.com', 'wemoney.it.com').split(',')
+# Get ALLOWED_HOSTS from environment or use default
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1,www.wemoney.it.com,wemoney.it.com').split(',')
 
 
 
