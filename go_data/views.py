@@ -284,7 +284,7 @@ def vehicle_create(request):
                 request, 
                 f'Vehicle {vehicle.vehicle_reg or vehicle.vin} created successfully!'
             )
-            return redirect('vehicles:dashboard')
+            return redirect('go_data:dashboard')
     else:
         form = VehicleForm()
     
@@ -307,7 +307,7 @@ def vehicle_update(request, pk):
                 request, 
                 f'Vehicle {vehicle.vehicle_reg or vehicle.vin} updated successfully!'
             )
-            return redirect('vehicles:dashboard')
+            return redirect('go_data:dashboard')
     else:
         form = VehicleForm(instance=vehicle)
     
@@ -327,7 +327,7 @@ def vehicle_delete(request, pk):
         vehicle_name = vehicle.vehicle_reg or vehicle.vin
         vehicle.delete()
         messages.success(request, f'Vehicle {vehicle_name} deleted successfully!')
-        return redirect('vehicles:dashboard')
+        return redirect('go_data:dashboard')
     
     return render(request, 'go_data/vehicle_confirm_delete.html', {
         'vehicle': vehicle
@@ -369,7 +369,7 @@ def vehicle_type_create(request):
                 request, 
                 f'Vehicle type {vehicle_type.code} created successfully!'
             )
-            return redirect('vehicles:vehicle_type_list')
+            return redirect('go_data:vehicle_type_list')
     else:
         form = VehicleTypeForm()
     
@@ -392,7 +392,7 @@ def vehicle_type_update(request, pk):
                 request, 
                 f'Vehicle type {vehicle_type.code} updated successfully!'
             )
-            return redirect('vehicles:vehicle_type_list')
+            return redirect('go_data:vehicle_type_list')
     else:
         form = VehicleTypeForm(instance=vehicle_type)
     
@@ -414,14 +414,14 @@ def vehicle_type_delete(request, pk):
                 request, 
                 f'Cannot delete {vehicle_type.code} because it has vehicles assigned.'
             )
-            return redirect('vehicles:vehicle_type_list')
+            return redirect('go_data:vehicle_type_list')
         
         vehicle_type.delete()
         messages.success(
             request, 
             f'Vehicle type {vehicle_type.code} deleted successfully!'
         )
-        return redirect('vehicles:vehicle_type_list')
+        return redirect('go_data:vehicle_type_list')
     
     return render(request, 'go_data/vehicle_type_confirm_delete.html', {
         'object': vehicle_type
@@ -450,7 +450,7 @@ def vehicle_category_create(request):
                 request, 
                 f'Category {category.code} created successfully!'
             )
-            return redirect('vehicles:vehicle_category_list')
+            return redirect('go_data:vehicle_category_list')
     else:
         form = VehicleCategoryForm()
     
@@ -473,7 +473,7 @@ def vehicle_category_update(request, pk):
                 request, 
                 f'Category {category.code} updated successfully!'
             )
-            return redirect('vehicles:vehicle_category_list')
+            return redirect('go_data:vehicle_category_list')
     else:
         form = VehicleCategoryForm(instance=category)
     
@@ -495,14 +495,14 @@ def vehicle_category_delete(request, pk):
                 request, 
                 f'Cannot delete {category.code} because it has vehicles assigned.'
             )
-            return redirect('vehicles:vehicle_category_list')
+            return redirect('go_data:vehicle_category_list')
         
         category.delete()
         messages.success(
             request, 
             f'Category {category.code} deleted successfully!'
         )
-        return redirect('vehicles:vehicle_category_list')
+        return redirect('go_data:vehicle_category_list')
     
     return render(request, 'go_data/vehicle_category_confirm_delete.html', {
         'object': category
@@ -531,7 +531,7 @@ def owner_create(request):
                 request, 
                 f'Owner {owner.owner_id} - {owner.name} created successfully!'
             )
-            return redirect('vehicles:owner_list')
+            return redirect('go_data:owner_list')
     else:
         form = OwnerForm()
     
@@ -551,7 +551,7 @@ def owner_update(request, pk):
         if form.is_valid():
             form.save()
             messages.success(request, f'Owner {owner.name} updated successfully!')
-            return redirect('vehicles:owner_list')
+            return redirect('go_data:owner_list')
     else:
         form = OwnerForm(instance=owner)
     
@@ -573,11 +573,11 @@ def owner_delete(request, pk):
                 request, 
                 f'Cannot delete {owner.name} because they have vehicles assigned.'
             )
-            return redirect('vehicles:owner_list')
+            return redirect('go_data:owner_list')
         
         owner.delete()
         messages.success(request, f'Owner {owner.name} deleted successfully!')
-        return redirect('vehicles:owner_list')
+        return redirect('go_data:owner_list')
     
     return render(request, 'go_data/owner_confirm_delete.html', {
         'object': owner

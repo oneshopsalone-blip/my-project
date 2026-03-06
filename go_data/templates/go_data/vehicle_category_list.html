@@ -6,8 +6,8 @@
 <div class="page-header">
     <h1 class="page-title">Vehicle Categories</h1>
     <div class="page-actions">
-        <a href="{% url 'vehicles:dashboard' %}" class="btn btn-outline">← Back to Dashboard</a>
-        <a href="{% url 'vehicles:vehicle_category_create' %}" class="btn btn-primary">➕ Add New Category</a>
+        <a href="{% url 'go_data:dashboard' %}" class="btn btn-outline">← Back to Dashboard</a>
+        <a href="{% url 'go_data:vehicle_category_create' %}" class="btn btn-primary">➕ Add New Category</a>
     </div>
 </div>
 
@@ -37,8 +37,8 @@
                     <td>{{ category.updated_at|date:"M d, Y" }}</td>
                     <td>{{ category.vehicles.count }}</td>
                     <td>
-                        <a href="{% url 'vehicles:vehicle_category_update' category.pk %}" class="btn btn-sm btn-outline">✏️ Edit</a>
-                        <a href="{% url 'vehicles:vehicle_category_delete' category.pk %}" class="btn btn-sm btn-danger">🗑️ Delete</a>
+                        <a href="{% url 'go_data:vehicle_category_update' category.pk %}" class="btn btn-sm btn-outline">✏️ Edit</a>
+                        <a href="{% url 'go_data:vehicle_category_delete' category.pk %}" class="btn btn-sm btn-danger">🗑️ Delete</a>
                     </td>
                 </tr>
                 {% endfor %}
@@ -49,7 +49,7 @@
             <div style="font-size: 3rem;">📋</div>
             <h3>No Vehicle Categories Found</h3>
             <p>Get started by creating your first vehicle category.</p>
-            <a href="{% url 'vehicles:vehicle_category_create' %}" class="btn btn-primary">Add Category</a>
+            <a href="{% url 'go_data:vehicle_category_create' %}" class="btn btn-primary">Add Category</a>
         </div>
         {% endif %}
     </div>

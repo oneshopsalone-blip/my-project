@@ -6,10 +6,10 @@
 <div class="page-header">
     <h1 class="page-title">Vehicle Details</h1>
     <div class="page-actions">
-        <a href="{% url 'vehicles:dashboard' %}" class="btn btn-outline">← Back</a>
-        <a href="{% url 'vehicles:vehicle_update' vehicle.pk %}" class="btn btn-primary">✏️ Edit</a>
-        <a href="{% url 'vehicles:print_preview' vehicle.pk %}" class="btn btn-secondary" target="_blank">🖨️ Print</a>
-        <a href="{% url 'vehicles:vehicle_delete' vehicle.pk %}" class="btn btn-danger">🗑️ Delete</a>
+        <a href="{% url 'go_data:dashboard' %}" class="btn btn-outline">← Back</a>
+        <a href="{% url 'go_data:vehicle_update' vehicle.pk %}" class="btn btn-primary">✏️ Edit</a>
+        <a href="{% url 'go_data:print_preview' vehicle.pk %}" class="btn btn-secondary" target="_blank">🖨️ Print</a>
+        <a href="{% url 'go_data:vehicle_delete' vehicle.pk %}" class="btn btn-danger">🗑️ Delete</a>
     </div>
 </div>
 

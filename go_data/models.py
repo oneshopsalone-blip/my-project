@@ -7,13 +7,12 @@ import re
 import random
 import string
 from datetime import timedelta
-from typing import Optional, Tuple
+from typing import Optional
 
 from django.db import models
 from django.utils import timezone
 from django.core.validators import RegexValidator, MinLengthValidator, MaxLengthValidator
 from django.core.exceptions import ValidationError
-from django.db.models import Count
 from django.utils.translation import gettext_lazy as _
 
 from dateutil.relativedelta import relativedelta
@@ -48,12 +47,6 @@ class VehicleType(models.Model):
         max_length=50,
         help_text=_("e.g., Commercial, Private, NGO, Diplomatic"),
         verbose_name=_("Name")
-    )
-    
-    description = models.TextField(
-        blank=True,
-        help_text=_("Additional description of the vehicle type"),
-        verbose_name=_("Description")
     )
     
     is_active = models.BooleanField(
@@ -132,11 +125,6 @@ class VehicleCategory(models.Model):
         verbose_name=_("Name")
     )
     
-    description = models.TextField(
-        blank=True,
-        verbose_name=_("Description")
-    )
-    
     is_active = models.BooleanField(
         default=True,
         verbose_name=_("Active")
@@ -213,23 +201,6 @@ class Owner(models.Model):
         max_length=100,
         verbose_name=_("Owner Name"),
         db_index=True
-    )
-    
-    contact_number = models.CharField(
-        max_length=15,
-        blank=True,
-        verbose_name=_("Contact Number"),
-        help_text=_("Phone number of the owner")
-    )
-    
-    email = models.EmailField(
-        blank=True,
-        verbose_name=_("Email Address")
-    )
-    
-    address = models.TextField(
-        blank=True,
-        verbose_name=_("Address")
     )
     
     is_active = models.BooleanField(
@@ -329,7 +300,7 @@ class Vehicle(models.Model):
     # Vehicle details - Foreign Keys
     vehicle_type = models.ForeignKey(
         VehicleType,
-        on_delete=models.PROTECT,  # PROTECT prevents deletion if vehicles exist
+        on_delete=models.PROTECT,
         related_name='vehicles',
         verbose_name=_("Vehicle Type"),
         limit_choices_to={'is_active': True}
@@ -337,7 +308,7 @@ class Vehicle(models.Model):
     
     category = models.ForeignKey(
         VehicleCategory,
-        on_delete=models.SET_NULL,  # SET_NULL allows category to be deleted
+        on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name='vehicles',
@@ -349,38 +320,10 @@ class Vehicle(models.Model):
     # Owner information - Foreign Key to Owner model
     owner = models.ForeignKey(
         Owner,
-        on_delete=models.PROTECT,  # PROTECT prevents deletion if vehicles exist
+        on_delete=models.PROTECT,
         related_name='vehicles',
         verbose_name=_("Owner"),
         limit_choices_to={'is_active': True}
-    )
-    
-    # Additional vehicle information
-    make = models.CharField(
-        max_length=50,
-        blank=True,
-        verbose_name=_("Make"),
-        help_text=_("e.g., Toyota, Nissan, Honda")
-    )
-    
-    model = models.CharField(
-        max_length=50,
-        blank=True,
-        verbose_name=_("Model"),
-        help_text=_("e.g., Corolla, Hilux, Camry")
-    )
-    
-    year = models.PositiveIntegerField(
-        null=True,
-        blank=True,
-        verbose_name=_("Year"),
-        help_text=_("Manufacturing year")
-    )
-    
-    color = models.CharField(
-        max_length=30,
-        blank=True,
-        verbose_name=_("Color")
     )
     
     # Status
@@ -435,8 +378,6 @@ class Vehicle(models.Model):
     
     def clean(self):
         """Model validation"""
-        super().clean()
-        
         # Validate expiry_date format
         if self.expiry_date:
             # Ensure expiry_date is first day of month
@@ -454,7 +395,7 @@ class Vehicle(models.Model):
             self._set_initial_expiry_date()
         
         # Clean before save
-        self.clean()
+        self.full_clean()
         
         super().save(*args, **kwargs)
     
@@ -479,15 +420,12 @@ class Vehicle(models.Model):
         next_year = current_date + relativedelta(years=1)
         self.expiry_date = next_year.replace(day=1)
     
-    def renew(self, years: int = 1) -> 'Vehicle':
+    def renew(self, years: int = 1):
         """
         Renew vehicle registration by extending expiry date
         
         Args:
             years: Number of years to extend
-            
-        Returns:
-            Vehicle: Updated vehicle instance
         """
         if not self.expiry_date:
             self._set_initial_expiry_date()
@@ -497,7 +435,6 @@ class Vehicle(models.Model):
             self.expiry_date = new_date.replace(day=1)
         
         self.save()
-        return self
     
     def is_expired(self) -> bool:
         """Check if vehicle registration is expired"""
@@ -581,6 +518,7 @@ class Vehicle(models.Model):
 # ============================================================================
 # PRINT LOG MODEL
 # ============================================================================
+
 class PrintLog(models.Model):
     """
     Model to track document print events for vehicles.

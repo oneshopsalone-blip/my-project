@@ -19,7 +19,7 @@
             <form method="post">
                 {% csrf_token %}
                 <div style="display: flex; gap: 10px; justify-content: center;">
-                    <a href="{% url 'vehicles:dashboard' %}" class="btn btn-outline">Cancel</a>
+                    <a href="{% url 'go_data:dashboard' %}" class="btn btn-outline">Cancel</a>
                     <button type="submit" class="btn btn-danger">Yes, Delete</button>
                 </div>
             </form>

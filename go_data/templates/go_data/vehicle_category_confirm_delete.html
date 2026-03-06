@@ -22,13 +22,13 @@
                 <strong>Cannot delete!</strong> This category has {{ object.vehicles.count }} vehicle(s) assigned.
             </div>
             <div style="display: flex; gap: 10px; justify-content: center;">
-                <a href="{% url 'vehicles:vehicle_category_list' %}" class="btn btn-primary">Back to List</a>
+                <a href="{% url 'go_data:vehicle_category_list' %}" class="btn btn-primary">Back to List</a>
             </div>
             {% else %}
             <form method="post">
                 {% csrf_token %}
                 <div style="display: flex; gap: 10px; justify-content: center;">
-                    <a href="{% url 'vehicles:vehicle_category_list' %}" class="btn btn-outline">Cancel</a>
+                    <a href="{% url 'go_data:vehicle_category_list' %}" class="btn btn-outline">Cancel</a>
                     <button type="submit" class="btn btn-danger">Yes, Delete</button>
                 </div>
             </form>

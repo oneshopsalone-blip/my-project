@@ -6,7 +6,7 @@
 <div class="page-header">
     <h1 class="page-title">{{ title }}</h1>
     <div class="page-actions">
-        <a href="{% url 'vehicles:vehicle_type_list' %}" class="btn btn-outline">← Back to Types</a>
+        <a href="{% url 'go_data:vehicle_type_list' %}" class="btn btn-outline">← Back to Types</a>
     </div>
 </div>
 
@@ -32,7 +32,7 @@
                 </div>
                 
                 <div class="form-actions" style="margin-top: 30px; display: flex; gap: 10px; justify-content: flex-end;">
-                    <a href="{% url 'vehicles:vehicle_type_list' %}" class="btn btn-outline">Cancel</a>
+                    <a href="{% url 'go_data:vehicle_type_list' %}" class="btn btn-outline">Cancel</a>
                     <button type="submit" class="btn btn-primary">
                         {% if object %}Update{% else %}Create{% endif %} Type
                     </button>
