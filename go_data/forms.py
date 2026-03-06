@@ -5,6 +5,7 @@ Forms for vehicle management in We Yone Pot - Digital Osusu Platform
 from django import forms
 from django.utils.translation import gettext_lazy as _
 from django.core.exceptions import ValidationError
+from django.utils.safestring import mark_safe
 import re
 
 from .models import (
@@ -45,8 +46,12 @@ class VehicleCategoryForm(forms.ModelForm):
     
     class Meta:
         model = VehicleCategory
-        fields = ['code', 'name', 'is_active']
+        fields = ['vehicle_type', 'code', 'name', 'is_active']
         widgets = {
+            'vehicle_type': forms.Select(attrs={
+                'class': 'form-select',
+                'id': 'id_vehicle_type'
+            }),
             'code': forms.TextInput(attrs={
                 'class': 'form-control',
                 'placeholder': _('e.g., AP1')
@@ -60,12 +65,39 @@ class VehicleCategoryForm(forms.ModelForm):
             }),
         }
     
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Only show active vehicle types
+        self.fields['vehicle_type'].queryset = VehicleType.get_active_types()
+    
     def clean_code(self):
         """Ensure code is uppercase"""
         code = self.cleaned_data.get('code')
         if code:
             return code.upper()
         return code
+    
+    def clean(self):
+        """Validate that code is unique within vehicle type"""
+        cleaned_data = super().clean()
+        vehicle_type = cleaned_data.get('vehicle_type')
+        code = cleaned_data.get('code')
+        
+        if vehicle_type and code:
+            # Check for existing category with same vehicle_type and code
+            existing = VehicleCategory.objects.filter(
+                vehicle_type=vehicle_type,
+                code=code
+            )
+            if self.instance.pk:
+                existing = existing.exclude(pk=self.instance.pk)
+            
+            if existing.exists():
+                raise ValidationError({
+                    'code': _('A category with this code already exists for this vehicle type.')
+                })
+        
+        return cleaned_data
 
 
 class OwnerForm(forms.ModelForm):
@@ -95,7 +127,7 @@ class OwnerForm(forms.ModelForm):
 
 
 class VehicleForm(forms.ModelForm):
-    """Main form for vehicle registration"""
+    """Main form for vehicle registration with dynamic category filtering"""
     
     class Meta:
         model = Vehicle
@@ -115,10 +147,13 @@ class VehicleForm(forms.ModelForm):
                 'placeholder': _('e.g., ABC 200')
             }),
             'vehicle_type': forms.Select(attrs={
-                'class': 'form-select'
+                'class': 'form-select',
+                'id': 'id_vehicle_type',  # Important for JavaScript
+                'data-dependent': '#id_category'  # Custom attribute for JS
             }),
             'category': forms.Select(attrs={
-                'class': 'form-select'
+                'class': 'form-select',
+                'id': 'id_category'
             }),
             'owner': forms.Select(attrs={
                 'class': 'form-select'
@@ -153,8 +188,18 @@ class VehicleForm(forms.ModelForm):
         
         # Limit choices to active records
         self.fields['vehicle_type'].queryset = VehicleType.get_active_types()
-        self.fields['category'].queryset = VehicleCategory.get_active_categories()
         self.fields['owner'].queryset = Owner.get_active_owners()
+        
+        # Initially, show all active categories or filter based on existing instance
+        if self.instance.pk and self.instance.vehicle_type:
+            # If editing existing vehicle, show categories for its vehicle type
+            self.fields['category'].queryset = VehicleCategory.get_active_categories(
+                vehicle_type=self.instance.vehicle_type
+            )
+        else:
+            # For new vehicles, show all active categories initially
+            # (will be filtered dynamically via JavaScript)
+            self.fields['category'].queryset = VehicleCategory.objects.filter(is_active=True)
         
         # Set created_by if user is provided and creating new instance
         if self.user and not self.instance.pk:
@@ -184,6 +229,20 @@ class VehicleForm(forms.ModelForm):
             if expiry_date.day != 1:
                 expiry_date = expiry_date.replace(day=1)
         return expiry_date
+    
+    def clean(self):
+        """Validate that category belongs to selected vehicle type"""
+        cleaned_data = super().clean()
+        vehicle_type = cleaned_data.get('vehicle_type')
+        category = cleaned_data.get('category')
+        
+        if vehicle_type and category and category.vehicle_type != vehicle_type:
+            self.add_error(
+                'category', 
+                _('Selected category does not belong to the selected vehicle type.')
+            )
+        
+        return cleaned_data
 
 
 class VehicleRenewForm(forms.Form):
@@ -232,7 +291,10 @@ class VehicleSearchForm(forms.Form):
         queryset=VehicleType.objects.all(),
         required=False,
         empty_label=_('All Types'),
-        widget=forms.Select(attrs={'class': 'form-select'})
+        widget=forms.Select(attrs={
+            'class': 'form-select',
+            'id': 'search_vehicle_type'
+        })
     )
     
     category = forms.ModelChoiceField(
@@ -240,7 +302,10 @@ class VehicleSearchForm(forms.Form):
         queryset=VehicleCategory.objects.all(),
         required=False,
         empty_label=_('All Categories'),
-        widget=forms.Select(attrs={'class': 'form-select'})
+        widget=forms.Select(attrs={
+            'class': 'form-select',
+            'id': 'search_category'
+        })
     )
     
     owner = forms.ModelChoiceField(
@@ -263,22 +328,13 @@ class VehicleSearchForm(forms.Form):
         widget=forms.Select(attrs={'class': 'form-select'})
     )
     
-    is_active = forms.NullBooleanField(
-        label=_('Active Status'),
-        required=False,
-        widget=forms.Select(attrs={'class': 'form-select'}, choices=[
-            ('', _('All')),
-            ('true', _('Active')),
-            ('false', _('Inactive')),
-        ])
-    )
-    
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Limit to active records for dropdowns
         self.fields['vehicle_type'].queryset = VehicleType.get_active_types()
-        self.fields['category'].queryset = VehicleCategory.get_active_categories()
         self.fields['owner'].queryset = Owner.get_active_owners()
+        # Show all active categories initially
+        self.fields['category'].queryset = VehicleCategory.objects.filter(is_active=True)
 
 
 class VehicleBulkUploadForm(forms.Form):

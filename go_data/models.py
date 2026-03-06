@@ -108,11 +108,11 @@ class VehicleType(models.Model):
 class VehicleCategory(models.Model):
     """
     Model for vehicle categories (AP1, B1, B2, C1, etc.)
+    Now linked to VehicleType - categories are specific to a vehicle type
     """
     
     code = models.CharField(
         max_length=10,
-        unique=True,
         help_text=_("e.g., AP1, B1, B2, C1"),
         blank=True,
         verbose_name=_("Code")
@@ -125,6 +125,15 @@ class VehicleCategory(models.Model):
         verbose_name=_("Name")
     )
     
+    # Foreign Key to VehicleType - each category belongs to a specific vehicle type
+    vehicle_type = models.ForeignKey(
+        VehicleType,
+        on_delete=models.CASCADE,
+        related_name='categories',
+        verbose_name=_("Vehicle Type"),
+        limit_choices_to={'is_active': True}
+    )
+    
     is_active = models.BooleanField(
         default=True,
         verbose_name=_("Active")
@@ -135,16 +144,18 @@ class VehicleCategory(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     
     class Meta:
-        ordering = ['code']
+        ordering = ['vehicle_type__code', 'code']
         verbose_name = _("Vehicle Category")
         verbose_name_plural = _("Vehicle Categories")
+        # Ensure code is unique per vehicle type
+        unique_together = ['vehicle_type', 'code']
         indexes = [
-            models.Index(fields=['code']),
+            models.Index(fields=['vehicle_type', 'code']),
             models.Index(fields=['is_active']),
         ]
     
     def __str__(self) -> str:
-        return self.code
+        return f"{self.vehicle_type.code} - {self.code}"
     
     def save(self, *args, **kwargs):
         """Auto-generate code if not provided"""
@@ -166,18 +177,26 @@ class VehicleCategory(models.Model):
         else:
             base_code = "CAT"
         
-        # Make it unique
+        # Make it unique within the vehicle type
         code = base_code
         counter = 1
-        while VehicleCategory.objects.filter(code=code).exists():
+        while VehicleCategory.objects.filter(vehicle_type=self.vehicle_type, code=code).exists():
             code = f"{base_code}{counter}"
             counter += 1
         return code
     
     @classmethod
-    def get_active_categories(cls):
-        """Get all active vehicle categories"""
-        return cls.objects.filter(is_active=True)
+    def get_active_categories(cls, vehicle_type=None):
+        """
+        Get all active categories, optionally filtered by vehicle type
+        
+        Args:
+            vehicle_type: VehicleType instance or ID to filter by
+        """
+        queryset = cls.objects.filter(is_active=True)
+        if vehicle_type:
+            queryset = queryset.filter(vehicle_type=vehicle_type)
+        return queryset
 
 
 # ============================================================================
@@ -314,7 +333,7 @@ class Vehicle(models.Model):
         related_name='vehicles',
         verbose_name=_("Vehicle Category"),
         help_text=_("e.g., AP1, B1, B2"),
-        limit_choices_to={'is_active': True}
+        # Note: We don't set limit_choices_to here because it will be dynamically filtered in forms
     )
     
     # Owner information - Foreign Key to Owner model
@@ -378,6 +397,13 @@ class Vehicle(models.Model):
     
     def clean(self):
         """Model validation"""
+        # Validate that category belongs to the selected vehicle type
+        if self.category and self.vehicle_type:
+            if self.category.vehicle_type != self.vehicle_type:
+                raise ValidationError({
+                    'category': _('Selected category does not belong to the selected vehicle type.')
+                })
+        
         # Validate expiry_date format
         if self.expiry_date:
             # Ensure expiry_date is first day of month
