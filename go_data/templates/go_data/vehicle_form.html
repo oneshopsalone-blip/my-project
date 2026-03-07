@@ -1,71 +1,505 @@
 {% extends 'go_data/base.html' %}
+{% load static %}
 
 {% block title %}{{ title }}{% endblock %}
 
-{% block content %}
-<div class="page-header">
-    <h1 class="page-title">{{ title }}</h1>
-    <div class="page-actions">
-        <a href="{% url 'go_data:dashboard' %}" class="btn btn-outline">← Back</a>
-    </div>
-</div>
-
-<div class="form-container" style="max-width: 600px; margin: 0 auto;">
-    <div class="card">
-        <div class="card-header">Vehicle Information</div>
-        <div class="card-body">
-            <form method="post" novalidate>
-                {% csrf_token %}
-                
-                {% for field in form %}
-                <div class="form-group">
-                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-                    {{ field }}
-                    {% if field.errors %}
-                    <div class="error-message" style="color: var(--danger-color); font-size: 0.9em; margin-top: 5px;">
-                        {{ field.errors.0 }}
-                    </div>
-                    {% endif %}
-                    {% if field.help_text %}
-                    <small class="help-text" style="color: var(--gray-color);">{{ field.help_text }}</small>
-                    {% endif %}
-                </div>
-                {% endfor %}
-                
-                <div class="form-actions" style="margin-top: 30px; display: flex; gap: 10px; justify-content: flex-end;">
-                    <a href="{% url 'go_data:dashboard' %}" class="btn btn-outline">Cancel</a>
-                    <button type="submit" class="btn btn-primary">
-                        {% if vehicle %}Update{% else %}Create{% endif %} Vehicle
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
+{% block extra_css %}
 <style>
+    .form-container {
+        max-width: 700px;
+        margin: 0 auto;
+    }
+    
     .form-group {
-        margin-bottom: 20px;
+        margin-bottom: 25px;
     }
     
     .form-group label {
         display: block;
-        margin-bottom: 5px;
+        margin-bottom: 8px;
         font-weight: 600;
+        color: #333;
+    }
+    
+    .form-group .required-field {
+        color: #f44336;
+        margin-left: 4px;
     }
     
     .form-group input,
-    .form-group select {
+    .form-group select,
+    .form-group textarea {
         width: 100%;
-        padding: 10px;
-        border: 1px solid var(--border-color);
-        border-radius: 4px;
+        padding: 12px;
+        border: 2px solid var(--border-color);
+        border-radius: 6px;
+        font-size: 15px;
+        transition: all 0.3s ease;
+        background-color: white;
     }
     
     .form-group input:focus,
-    .form-group select:focus {
+    .form-group select:focus,
+    .form-group textarea:focus {
         outline: none;
         border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+    }
+    
+    .form-group input[readonly] {
+        background-color: #f8f9fa;
+        cursor: not-allowed;
+    }
+    
+    .error-message {
+        color: #f44336;
+        font-size: 13px;
+        margin-top: 5px;
+        padding: 8px 12px;
+        background: #ffebee;
+        border-radius: 4px;
+        border-left: 3px solid #f44336;
+    }
+    
+    .help-text {
+        display: block;
+        color: #666;
+        font-size: 12px;
+        margin-top: 5px;
+        font-style: italic;
+    }
+    
+    .form-actions {
+        margin-top: 30px;
+        display: flex;
+        gap: 15px;
+        justify-content: flex-end;
+        border-top: 1px solid var(--border-color);
+        padding-top: 20px;
+    }
+    
+    /* Field styling */
+    .field-vin {
+        font-family: monospace;
+        text-transform: uppercase;
+    }
+    
+    /* Info box */
+    .info-box {
+        background: #e3f2fd;
+        border-left: 4px solid #2196F3;
+        padding: 15px;
+        margin-bottom: 20px;
+        border-radius: 4px;
+    }
+    
+    .info-box p {
+        margin: 0;
+        color: #1976d2;
+    }
+    
+    /* Loading spinner */
+    .loading-spinner {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        border: 2px solid #f3f3f3;
+        border-top: 2px solid #3498db;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-left: 8px;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    /* Metadata section */
+    .metadata-section {
+        margin-top: 30px;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 6px;
+        font-size: 13px;
+    }
+    
+    .metadata-section h4 {
+        margin: 0 0 10px 0;
+        color: #495057;
+        font-size: 14px;
+    }
+    
+    .metadata-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+    }
+    
+    .metadata-item {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .metadata-label {
+        color: #6c757d;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .metadata-value {
+        font-weight: 600;
+        color: #212529;
+        margin-top: 2px;
+    }
+    
+    /* Status badge */
+    .status-badge {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    
+    .status-badge.active {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .status-badge.inactive {
+        background: #f8d7da;
+        color: #721c24;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+        .form-container {
+            padding: 0 15px;
+        }
+        
+        .form-actions {
+            flex-direction: column;
+        }
+        
+        .form-actions .btn {
+            width: 100%;
+        }
     }
 </style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">
+        <i class="icon">{% if vehicle %}✏️{% else %}➕{% endif %}</i>
+        {{ title }}
+    </h1>
+    <div class="page-actions">
+        <a href="{% url 'go_data:dashboard' %}" class="btn btn-outline">
+            <i class="icon">←</i> Back to Dashboard
+        </a>
+    </div>
+</div>
+
+<div class="form-container">
+    <div class="card">
+        <div class="card-header">
+            <h3><i class="icon">🚗</i> Vehicle Information</h3>
+        </div>
+        
+        <div class="card-body">
+            {% if vehicle %}
+            <div class="info-box">
+                <p>
+                    <strong>Editing Vehicle:</strong> 
+                    {{ vehicle.vin }} - {{ vehicle.vehicle_reg|default:"No registration" }}
+                    {% if not vehicle.is_active %}
+                    <span class="status-badge inactive">Inactive</span>
+                    {% endif %}
+                </p>
+            </div>
+            {% endif %}
+            
+            <form method="post" novalidate id="vehicleForm">
+                {% csrf_token %}
+                
+                {% if form.non_field_errors %}
+                <div class="error-message" style="margin-bottom: 20px;">
+                    {% for error in form.non_field_errors %}
+                    {{ error }}
+                    {% endfor %}
+                </div>
+                {% endif %}
+                
+                <!-- Hidden fields -->
+                {% for hidden in form.hidden_fields %}
+                    {{ hidden }}
+                {% endfor %}
+                
+                <!-- VIN Field -->
+                <div class="form-group">
+                    <label for="{{ form.vin.id_for_label }}">
+                        {{ form.vin.label }}
+                        {% if form.vin.field.required %}<span class="required-field">*</span>{% endif %}
+                    </label>
+                    {{ form.vin }}
+                    {% if form.vin.errors %}
+                    <div class="error-message">
+                        <i class="icon">⚠️</i> {{ form.vin.errors.0 }}
+                    </div>
+                    {% endif %}
+                    {% if form.vin.help_text %}
+                    <small class="help-text">{{ form.vin.help_text }}</small>
+                    {% endif %}
+                    {% if not vehicle %}
+                    <small class="help-text" style="color: #4CAF50;">
+                        <i class="icon">✨</i> Leave blank to auto-generate
+                    </small>
+                    {% endif %}
+                </div>
+                
+                <!-- Vehicle Registration Field -->
+                <div class="form-group">
+                    <label for="{{ form.vehicle_reg.id_for_label }}">
+                        {{ form.vehicle_reg.label }}
+                        {% if form.vehicle_reg.field.required %}<span class="required-field">*</span>{% endif %}
+                    </label>
+                    {{ form.vehicle_reg }}
+                    {% if form.vehicle_reg.errors %}
+                    <div class="error-message">{{ form.vehicle_reg.errors.0 }}</div>
+                    {% endif %}
+                    {% if form.vehicle_reg.help_text %}
+                    <small class="help-text">{{ form.vehicle_reg.help_text }}</small>
+                    {% endif %}
+                </div>
+                
+                <!-- Vehicle Type Field -->
+                <div class="form-group">
+                    <label for="{{ form.vehicle_type.id_for_label }}">
+                        {{ form.vehicle_type.label }}
+                        {% if form.vehicle_type.field.required %}<span class="required-field">*</span>{% endif %}
+                    </label>
+                    {{ form.vehicle_type }}
+                    {% if form.vehicle_type.errors %}
+                    <div class="error-message">{{ form.vehicle_type.errors.0 }}</div>
+                    {% endif %}
+                    {% if form.vehicle_type.help_text %}
+                    <small class="help-text">{{ form.vehicle_type.help_text }}</small>
+                    {% endif %}
+                </div>
+                
+                <!-- Category Field (Dynamic) -->
+                <div class="form-group">
+                    <label for="{{ form.category.id_for_label }}">
+                        {{ form.category.label }}
+                        {% if form.category.field.required %}<span class="required-field">*</span>{% endif %}
+                    </label>
+                    {{ form.category }}
+                    <div id="categoryLoading" class="loading-spinner" style="display: none;"></div>
+                    {% if form.category.errors %}
+                    <div class="error-message">{{ form.category.errors.0 }}</div>
+                    {% endif %}
+                    {% if form.category.help_text %}
+                    <small class="help-text">{{ form.category.help_text }}</small>
+                    {% endif %}
+                    <small class="help-text" id="noCategoriesMsg" style="color: #f39c12; display: none;">
+                        <i class="icon">⚠️</i> No categories available for selected vehicle type.
+                        <a href="{% url 'go_data:vehicle_category_create' %}" target="_blank">Create one</a>
+                    </small>
+                </div>
+                
+                <!-- Owner Field -->
+                <div class="form-group">
+                    <label for="{{ form.owner.id_for_label }}">
+                        {{ form.owner.label }}
+                        {% if form.owner.field.required %}<span class="required-field">*</span>{% endif %}
+                    </label>
+                    {{ form.owner }}
+                    {% if form.owner.errors %}
+                    <div class="error-message">{{ form.owner.errors.0 }}</div>
+                    {% endif %}
+                    {% if form.owner.help_text %}
+                    <small class="help-text">{{ form.owner.help_text }}</small>
+                    {% endif %}
+                </div>
+                
+                <!-- Expiry Date Field -->
+                <div class="form-group">
+                    <label for="{{ form.expiry_date.id_for_label }}">
+                        {{ form.expiry_date.label }}
+                        {% if form.expiry_date.field.required %}<span class="required-field">*</span>{% endif %}
+                    </label>
+                    {{ form.expiry_date }}
+                    {% if form.expiry_date.errors %}
+                    <div class="error-message">{{ form.expiry_date.errors.0 }}</div>
+                    {% endif %}
+                    {% if form.expiry_date.help_text %}
+                    <small class="help-text">{{ form.expiry_date.help_text }}</small>
+                    {% endif %}
+                    {% if not vehicle %}
+                    <small class="help-text" style="color: #4CAF50;">
+                        <i class="icon">✨</i> Auto-set to 1 year from now if blank
+                    </small>
+                    {% endif %}
+                </div>
+                
+                <!-- Active Status (for updates) -->
+                {% if vehicle %}
+                <div class="form-group">
+                    <label for="{{ form.is_active.id_for_label }}">
+                        {{ form.is_active.label }}
+                    </label>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        {{ form.is_active }}
+                        <span>Vehicle is {% if vehicle.is_active %}active{% else %}inactive{% endif %}</span>
+                    </div>
+                    {% if form.is_active.errors %}
+                    <div class="error-message">{{ form.is_active.errors.0 }}</div>
+                    {% endif %}
+                    <small class="help-text">{{ form.is_active.help_text }}</small>
+                </div>
+                {% endif %}
+                
+                <!-- Form Actions -->
+                <div class="form-actions">
+                    <a href="{% url 'go_data:dashboard' %}" class="btn btn-outline">
+                        <i class="icon">✕</i> Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="icon">{% if vehicle %}✓{% else %}➕{% endif %}</i>
+                        {% if vehicle %}Update{% else %}Create{% endif %} Vehicle
+                    </button>
+                </div>
+            </form>
+            
+            <!-- Metadata (for existing vehicles) -->
+            {% if vehicle %}
+            <div class="metadata-section">
+                <h4><i class="icon">📊</i> Metadata</h4>
+                <div class="metadata-grid">
+                    <div class="metadata-item">
+                        <span class="metadata-label">Created</span>
+                        <span class="metadata-value">{{ vehicle.created_at|date:"M d, Y H:i" }}</span>
+                    </div>
+                    <div class="metadata-item">
+                        <span class="metadata-label">Last Updated</span>
+                        <span class="metadata-value">{{ vehicle.updated_at|date:"M d, Y H:i" }}</span>
+                    </div>
+                    <div class="metadata-item">
+                        <span class="metadata-label">Created By</span>
+                        <span class="metadata-value">{{ vehicle.created_by|default:"System" }}</span>
+                    </div>
+                    <div class="metadata-item">
+                        <span class="metadata-label">Card Number</span>
+                        <span class="metadata-value">{{ vehicle.card_number }}</span>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Quick Tips Card -->
+    <div class="card" style="margin-top: 20px; background: #f8f9fa;">
+        <div class="card-header">
+            <h4><i class="icon">💡</i> Quick Tips</h4>
+        </div>
+        <div class="card-body">
+            <ul style="margin: 0; padding-left: 20px;">
+                <li><strong>VIN:</strong> 5-character code (auto-generated if blank)</li>
+                <li><strong>Vehicle Type:</strong> Select first, then categories will filter automatically</li>
+                <li><strong>Expiry Date:</strong> Format as MM/YYYY (will be set to first day of month)</li>
+                <li>All fields with <span class="required-field">*</span> are required</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function() {
+        const vehicleTypeSelect = document.getElementById('{{ form.vehicle_type.id_for_label }}');
+        const categorySelect = document.getElementById('{{ form.category.id_for_label }}');
+        const loadingSpinner = document.getElementById('categoryLoading');
+        const noCategoriesMsg = document.getElementById('noCategoriesMsg');
+        
+        // Store original categories for current vehicle type (if editing)
+        let currentCategoryId = '{{ form.category.value|default:"" }}';
+        
+        function loadCategories(vehicleTypeId) {
+            if (!vehicleTypeId) {
+                // Clear category select
+                categorySelect.innerHTML = '<option value="">---------</option>';
+                categorySelect.disabled = true;
+                noCategoriesMsg.style.display = 'none';
+                return;
+            }
+            
+            // Show loading
+            loadingSpinner.style.display = 'inline-block';
+            categorySelect.disabled = true;
+            noCategoriesMsg.style.display = 'none';
+            
+            // Fetch categories via API
+            fetch(`{% url 'go_data:api_categories_by_type' %}?vehicle_type_id=${vehicleTypeId}`)
+                .then(response => response.json())
+                .then(data => {
+                    loadingSpinner.style.display = 'none';
+                    
+                    if (data.success && data.categories.length > 0) {
+                        // Populate categories
+                        categorySelect.innerHTML = '<option value="">Select a category</option>';
+                        data.categories.forEach(cat => {
+                            const option = document.createElement('option');
+                            option.value = cat.id;
+                            option.textContent = cat.display;
+                            if (currentCategoryId && cat.id == currentCategoryId) {
+                                option.selected = true;
+                            }
+                            categorySelect.appendChild(option);
+                        });
+                        categorySelect.disabled = false;
+                        noCategoriesMsg.style.display = 'none';
+                    } else {
+                        // No categories
+                        categorySelect.innerHTML = '<option value="">No categories available</option>';
+                        categorySelect.disabled = true;
+                        noCategoriesMsg.style.display = 'block';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading categories:', error);
+                    loadingSpinner.style.display = 'none';
+                    categorySelect.innerHTML = '<option value="">Error loading categories</option>';
+                    categorySelect.disabled = true;
+                });
+        }
+        
+        // Load initial categories if vehicle type is preselected
+        if (vehicleTypeSelect.value) {
+            loadCategories(vehicleTypeSelect.value);
+        } else {
+            categorySelect.disabled = true;
+        }
+        
+        // Handle vehicle type change
+        vehicleTypeSelect.addEventListener('change', function(e) {
+            currentCategoryId = ''; // Reset selected category
+            loadCategories(this.value);
+        });
+        
+        // Form validation
+        document.getElementById('vehicleForm').addEventListener('submit', function(e) {
+            const vehicleType = vehicleTypeSelect.value;
+            const category = categorySelect.value;
+            
+            if (vehicleType && !category) {
+                if (!confirm('No category selected. Are you sure you want to continue?')) {
+                    e.preventDefault();
+                }
+            }
+        });
+    })();
+</script>
 {% endblock %}
