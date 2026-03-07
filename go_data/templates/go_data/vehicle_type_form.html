@@ -1,69 +1,316 @@
 {% extends 'go_data/base.html' %}
+{% load static %}
 
 {% block title %}{{ title }}{% endblock %}
 
 {% block content %}
 <div class="page-header">
-    <h1 class="page-title">{{ title }}</h1>
+    <h1 class="page-title">
+        <i class="icon">{% if object %}✏️{% else %}➕{% endif %}</i> 
+        {{ title }}
+    </h1>
     <div class="page-actions">
-        <a href="{% url 'go_data:vehicle_type_list' %}" class="btn btn-outline">← Back to Types</a>
+        <a href="{% url 'go_data:vehicle_type_list' %}" class="btn btn-outline">
+            <i class="icon">←</i> Back to Types
+        </a>
     </div>
 </div>
 
-<div class="form-container" style="max-width: 500px; margin: 0 auto;">
+<div class="form-container">
     <div class="card">
-        <div class="card-header">Vehicle Type Information</div>
+        <div class="card-header">
+            <h3>
+                <i class="icon">📝</i> 
+                {% if object %}Edit{% else %}Create{% endif %} Vehicle Type
+            </h3>
+        </div>
+        
         <div class="card-body">
-            <form method="post" novalidate>
+            <form method="post" novalidate class="vehicle-form">
                 {% csrf_token %}
                 
+                {% if object %}
+                <div class="info-box" style="background: #e3f2fd; padding: 15px; border-radius: 4px; margin-bottom: 20px;">
+                    <p style="margin: 0; color: #1976d2;">
+                        <strong>Current Code:</strong> {{ object.code }}
+                        {% if object.vehicle_count > 0 %}
+                        <br><small>This type has {{ object.vehicle_count }} vehicle(s) and {{ object.category_count }} category(ies) assigned.</small>
+                        {% endif %}
+                    </p>
+                </div>
+                {% endif %}
+                
+                <!-- Code Field (Read-only for existing) -->
+                {% if object %}
                 <div class="form-group">
-                    <label for="{{ form.name.id_for_label }}">Name</label>
+                    <label for="id_code_display">Code</label>
+                    <input type="text" 
+                           id="id_code_display" 
+                           value="{{ object.code }}" 
+                           class="form-control" 
+                           readonly 
+                           disabled
+                           style="background: #f5f5f5;">
+                    <small class="help-text">Code cannot be changed after creation.</small>
+                </div>
+                {% endif %}
+                
+                <!-- Name Field -->
+                <div class="form-group">
+                    <label for="{{ form.name.id_for_label }}">
+                        Name <span class="required">*</span>
+                    </label>
                     {{ form.name }}
                     {% if form.name.errors %}
-                    <div class="error-message" style="color: var(--danger-color); font-size: 0.9em; margin-top: 5px;">
-                        {{ form.name.errors.0 }}
+                    <div class="error-message">
+                        <i class="icon">⚠️</i> {{ form.name.errors.0 }}
                     </div>
                     {% endif %}
-                    <small class="help-text" style="color: var(--gray-color);">{{ form.name.help_text }}</small>
-                    <small class="help-text" style="color: var(--gray-color); display: block; margin-top: 5px;">
-                        Code will be auto-generated as first 3 letters of name (e.g., Commercial → COM)
-                    </small>
+                    <small class="help-text">{{ form.name.help_text }}</small>
+                    
+                    {% if not object %}
+                    <div class="code-preview" id="codePreview" style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 4px; display: none;">
+                        <span style="color: #666;">Auto-generated code:</span>
+                        <strong id="previewCode" style="color: #2196F3; font-size: 16px;"></strong>
+                    </div>
+                    {% endif %}
                 </div>
                 
-                <div class="form-actions" style="margin-top: 30px; display: flex; gap: 10px; justify-content: flex-end;">
-                    <a href="{% url 'go_data:vehicle_type_list' %}" class="btn btn-outline">Cancel</a>
+                <!-- Status Field (for existing) -->
+                {% if object %}
+                <div class="form-group">
+                    <label for="{{ form.is_active.id_for_label }}">Status</label>
+                    <div class="checkbox-wrapper">
+                        {{ form.is_active }}
+                        <label for="{{ form.is_active.id_for_label }}" class="checkbox-label">
+                            {% if object.is_active %}Active{% else %}Inactive{% endif %}
+                        </label>
+                    </div>
+                    {% if form.is_active.errors %}
+                    <div class="error-message">{{ form.is_active.errors.0 }}</div>
+                    {% endif %}
+                    <small class="help-text">Inactive types won't appear in vehicle forms.</small>
+                </div>
+                {% endif %}
+                
+                <!-- Metadata (for existing) -->
+                {% if object %}
+                <div class="metadata-section" style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 4px;">
+                    <h4 style="margin: 0 0 10px 0; font-size: 14px; color: #666;">Metadata</h4>
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; font-size: 13px;">
+                        <div>
+                            <span style="color: #666;">Created:</span>
+                            <strong>{{ object.created_at|date:"M d, Y H:i" }}</strong>
+                        </div>
+                        <div>
+                            <span style="color: #666;">Last Updated:</span>
+                            <strong>{{ object.updated_at|date:"M d, Y H:i" }}</strong>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Form Actions -->
+                <div class="form-actions">
+                    <a href="{% url 'go_data:vehicle_type_list' %}" class="btn btn-outline">
+                        Cancel
+                    </a>
                     <button type="submit" class="btn btn-primary">
-                        {% if object %}Update{% else %}Create{% endif %} Type
+                        <i class="icon">{% if object %}✓{% else %}➕{% endif %}</i>
+                        {% if object %}Update{% else %}Create{% endif %} Vehicle Type
                     </button>
                 </div>
             </form>
         </div>
     </div>
+    
+    <!-- Preview Card (for new types) -->
+    {% if not object %}
+    <div class="card" style="margin-top: 20px;">
+        <div class="card-header">
+            <h4><i class="icon">👁️</i> Preview</h4>
+        </div>
+        <div class="card-body">
+            <div id="previewCard" style="display: none;">
+                <p>Your vehicle type will appear as:</p>
+                <div style="padding: 15px; border: 1px solid var(--border-color); border-radius: 4px; background: #f8f9fa;">
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <span class="preview-badge" id="previewBadge" style="background: #2196F3; color: white; padding: 4px 8px; border-radius: 4px;"></span>
+                        <span class="preview-name" id="previewName"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 </div>
 
+<script>
+    (function() {
+        {% if not object %}
+        // Auto-generate code preview from name
+        const nameInput = document.getElementById('{{ form.name.id_for_label }}');
+        const codePreview = document.getElementById('codePreview');
+        const previewCode = document.getElementById('previewCode');
+        const previewCard = document.getElementById('previewCard');
+        const previewBadge = document.getElementById('previewBadge');
+        const previewName = document.getElementById('previewName');
+        
+        function generateCode(name) {
+            if (!name) return '';
+            
+            // Take first 3 letters, uppercase, remove non-letters
+            let code = name.substring(0, 3).toUpperCase().replace(/[^A-Z]/g, '');
+            
+            // If no letters, use TYP
+            if (!code) code = 'TYP';
+            
+            return code;
+        }
+        
+        function updatePreview() {
+            const name = nameInput.value.trim();
+            
+            if (name) {
+                const code = generateCode(name);
+                
+                // Show code preview
+                codePreview.style.display = 'block';
+                previewCode.textContent = code;
+                
+                // Show full preview card
+                previewCard.style.display = 'block';
+                previewBadge.textContent = code;
+                previewName.textContent = name;
+            } else {
+                codePreview.style.display = 'none';
+                previewCard.style.display = 'none';
+            }
+        }
+        
+        nameInput.addEventListener('input', updatePreview);
+        nameInput.addEventListener('keyup', updatePreview);
+        
+        // Initial preview if there's a value
+        if (nameInput.value) {
+            updatePreview();
+        }
+        {% endif %}
+        
+        // Form validation
+        const form = document.querySelector('.vehicle-form');
+        form.addEventListener('submit', function(e) {
+            const nameInput = document.getElementById('{{ form.name.id_for_label }}');
+            
+            if (!nameInput.value.trim()) {
+                e.preventDefault();
+                alert('Please enter a name for the vehicle type.');
+                nameInput.focus();
+            }
+        });
+    })();
+</script>
+
 <style>
+    .form-container {
+        max-width: 600px;
+        margin: 0 auto;
+    }
+    
     .form-group {
-        margin-bottom: 20px;
+        margin-bottom: 25px;
     }
     
     .form-group label {
         display: block;
-        margin-bottom: 5px;
+        margin-bottom: 8px;
         font-weight: 600;
+        color: #333;
     }
     
-    .form-group input {
+    .form-group .required {
+        color: #f44336;
+    }
+    
+    .form-group input[type="text"] {
         width: 100%;
-        padding: 10px;
-        border: 1px solid var(--border-color);
-        border-radius: 4px;
-        font-size: 14px;
+        padding: 12px;
+        border: 2px solid var(--border-color);
+        border-radius: 6px;
+        font-size: 15px;
+        transition: all 0.3s;
     }
     
-    .form-group input:focus {
+    .form-group input[type="text"]:focus {
         outline: none;
         border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+    }
+    
+    .error-message {
+        color: #f44336;
+        font-size: 13px;
+        margin-top: 5px;
+        padding: 5px 10px;
+        background: #ffebee;
+        border-radius: 4px;
+    }
+    
+    .help-text {
+        display: block;
+        color: #666;
+        font-size: 12px;
+        margin-top: 5px;
+    }
+    
+    .checkbox-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .checkbox-wrapper input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+    }
+    
+    .checkbox-label {
+        font-weight: normal !important;
+        margin-bottom: 0 !important;
+        cursor: pointer;
+    }
+    
+    .form-actions {
+        margin-top: 30px;
+        display: flex;
+        gap: 15px;
+        justify-content: flex-end;
+        border-top: 1px solid var(--border-color);
+        padding-top: 20px;
+    }
+    
+    .preview-badge {
+        background: #2196F3;
+        color: white;
+        padding: 6px 12px;
+        border-radius: 4px;
+        font-weight: bold;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+        .form-container {
+            padding: 0 15px;
+        }
+        
+        .form-actions {
+            flex-direction: column;
+        }
+        
+        .form-actions .btn {
+            width: 100%;
+        }
     }
 </style>
 {% endblock %}
