@@ -1,73 +1,394 @@
 {% extends 'go_data/base.html' %}
+{% load static %}
 
 {% block title %}{{ title }}{% endblock %}
 
-{% block content %}
-<div class="page-header">
-    <h1 class="page-title">{{ title }}</h1>
-    <div class="page-actions">
-        <a href="{% url 'go_data:owner_list' %}" class="btn btn-outline">← Back to Owners</a>
-    </div>
-</div>
-
-<div class="form-container" style="max-width: 500px; margin: 0 auto;">
-    <div class="card">
-        <div class="card-header">Owner Information</div>
-        <div class="card-body">
-            <form method="post" novalidate>
-                {% csrf_token %}
-                
-                <div class="form-group">
-                    <label for="{{ form.name.id_for_label }}">Name</label>
-                    {{ form.name }}
-                    {% if form.name.errors %}
-                    <div class="error-message" style="color: var(--danger-color); font-size: 0.9em; margin-top: 5px;">
-                        {{ form.name.errors.0 }}
-                    </div>
-                    {% endif %}
-                    <small class="help-text" style="color: var(--gray-color);">{{ form.name.help_text }}</small>
-                </div>
-                
-                {% if object %}
-                <div class="info-box" style="background: var(--light-color); padding: 15px; border-radius: 4px; margin-top: 20px;">
-                    <p><strong>Owner ID:</strong> {{ object.owner_id }}</p>
-                    <p><strong>Vehicles Owned:</strong> {{ object.vehicles.count }}</p>
-                </div>
-                {% endif %}
-                
-                <div class="form-actions" style="margin-top: 30px; display: flex; gap: 10px; justify-content: flex-end;">
-                    <a href="{% url 'go_data:owner_list' %}" class="btn btn-outline">Cancel</a>
-                    <button type="submit" class="btn btn-primary">
-                        {% if object %}Update{% else %}Create{% endif %} Owner
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
+{% block extra_css %}
 <style>
+    .form-container {
+        max-width: 600px;
+        margin: 0 auto;
+    }
+    
     .form-group {
-        margin-bottom: 20px;
+        margin-bottom: 25px;
     }
     
     .form-group label {
         display: block;
-        margin-bottom: 5px;
+        margin-bottom: 8px;
         font-weight: 600;
+        color: #333;
     }
     
-    .form-group input {
+    .form-group .required-field {
+        color: #f44336;
+        margin-left: 4px;
+    }
+    
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
         width: 100%;
-        padding: 10px;
-        border: 1px solid var(--border-color);
-        border-radius: 4px;
-        font-size: 14px;
+        padding: 12px;
+        border: 2px solid var(--border-color);
+        border-radius: 6px;
+        font-size: 15px;
+        transition: all 0.3s ease;
+        background-color: white;
     }
     
-    .form-group input:focus {
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
         outline: none;
         border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+    }
+    
+    .form-group input[readonly] {
+        background-color: #f8f9fa;
+        cursor: not-allowed;
+    }
+    
+    .error-message {
+        color: #f44336;
+        font-size: 13px;
+        margin-top: 5px;
+        padding: 8px 12px;
+        background: #ffebee;
+        border-radius: 4px;
+        border-left: 3px solid #f44336;
+    }
+    
+    .help-text {
+        display: block;
+        color: #666;
+        font-size: 12px;
+        margin-top: 5px;
+        font-style: italic;
+    }
+    
+    .form-actions {
+        margin-top: 30px;
+        display: flex;
+        gap: 15px;
+        justify-content: flex-end;
+        border-top: 1px solid var(--border-color);
+        padding-top: 20px;
+    }
+    
+    /* Info box */
+    .info-box {
+        background: #e3f2fd;
+        border-left: 4px solid #2196F3;
+        padding: 20px;
+        margin: 20px 0;
+        border-radius: 4px;
+    }
+    
+    .info-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px solid rgba(33, 150, 243, 0.2);
+    }
+    
+    .info-item:last-child {
+        border-bottom: none;
+    }
+    
+    .info-label {
+        font-weight: 600;
+        color: #1976d2;
+    }
+    
+    .info-value {
+        font-size: 16px;
+        color: #0d47a1;
+    }
+    
+    /* Metadata section */
+    .metadata-section {
+        margin-top: 30px;
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 6px;
+        font-size: 13px;
+    }
+    
+    .metadata-section h4 {
+        margin: 0 0 15px 0;
+        color: #495057;
+        font-size: 14px;
+        border-bottom: 1px solid #dee2e6;
+        padding-bottom: 10px;
+    }
+    
+    .metadata-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+    }
+    
+    .metadata-item {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .metadata-label {
+        color: #6c757d;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .metadata-value {
+        font-weight: 600;
+        color: #212529;
+        margin-top: 2px;
+    }
+    
+    /* Status toggle */
+    .status-toggle {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 10px;
+    }
+    
+    .status-toggle input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+    }
+    
+    .status-toggle label {
+        margin-bottom: 0;
+        cursor: pointer;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+        .form-container {
+            padding: 0 15px;
+        }
+        
+        .form-actions {
+            flex-direction: column;
+        }
+        
+        .form-actions .btn {
+            width: 100%;
+        }
+        
+        .info-item {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 5px;
+        }
     }
 </style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">
+        <i class="icon">{% if object %}✏️{% else %}➕{% endif %}</i>
+        {{ title }}
+    </h1>
+    <div class="page-actions">
+        <a href="{% url 'go_data:owner_list' %}" class="btn btn-outline">
+            <i class="icon">←</i> Back to Owners
+        </a>
+    </div>
+</div>
+
+<div class="form-container">
+    <div class="card">
+        <div class="card-header">
+            <h3><i class="icon">👤</i> Owner Information</h3>
+        </div>
+        
+        <div class="card-body">
+            <form method="post" novalidate>
+                {% csrf_token %}
+                
+                {% if form.non_field_errors %}
+                <div class="error-message" style="margin-bottom: 20px;">
+                    {% for error in form.non_field_errors %}
+                    {{ error }}
+                    {% endfor %}
+                </div>
+                {% endif %}
+                
+                <!-- Hidden fields -->
+                {% for hidden in form.hidden_fields %}
+                    {{ hidden }}
+                {% endfor %}
+                
+                <!-- Owner ID (display only for existing) -->
+                {% if object %}
+                <div class="form-group">
+                    <label>Owner ID</label>
+                    <input type="text" 
+                           value="{{ object.owner_id }}" 
+                           class="form-control" 
+                           readonly 
+                           disabled
+                           style="background: #f5f5f5; font-family: monospace; font-size: 16px;">
+                    <small class="help-text">Owner ID is auto-generated and cannot be changed</small>
+                </div>
+                {% endif %}
+                
+                <!-- Name Field -->
+                <div class="form-group">
+                    <label for="{{ form.name.id_for_label }}">
+                        Full Name <span class="required-field">*</span>
+                    </label>
+                    {{ form.name }}
+                    {% if form.name.errors %}
+                    <div class="error-message">
+                        <i class="icon">⚠️</i> {{ form.name.errors.0 }}
+                    </div>
+                    {% endif %}
+                    <small class="help-text">{{ form.name.help_text }}</small>
+                </div>
+                
+                <!-- Status Field (for existing) -->
+                {% if object %}
+                <div class="form-group">
+                    <label>Status</label>
+                    <div class="status-toggle">
+                        {{ form.is_active }}
+                        <label for="{{ form.is_active.id_for_label }}">
+                            Owner is {% if object.is_active %}active{% else %}inactive{% endif %}
+                        </label>
+                    </div>
+                    {% if form.is_active.errors %}
+                    <div class="error-message">{{ form.is_active.errors.0 }}</div>
+                    {% endif %}
+                    <small class="help-text">Inactive owners won't appear in vehicle forms</small>
+                </div>
+                {% endif %}
+                
+                <!-- Created By (hidden) -->
+                {{ form.created_by }}
+                
+                <!-- Form Actions -->
+                <div class="form-actions">
+                    <a href="{% url 'go_data:owner_list' %}" class="btn btn-outline">
+                        <i class="icon">✕</i> Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="icon">{% if object %}✓{% else %}➕{% endif %}</i>
+                        {% if object %}Update{% else %}Create{% endif %} Owner
+                    </button>
+                </div>
+            </form>
+            
+            <!-- Information Box for Existing Owners -->
+            {% if object %}
+            <div class="info-box">
+                <h4 style="margin-top: 0; margin-bottom: 15px; color: #1976d2;">
+                    <i class="icon">📊</i> Owner Summary
+                </h4>
+                <div class="info-item">
+                    <span class="info-label">Owner ID:</span>
+                    <span class="info-value">{{ object.owner_id }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Vehicles Owned:</span>
+                    <span class="info-value">{{ object.vehicle_count }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Total Prints:</span>
+                    <span class="info-value">{{ object.print_count|default:"0" }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Member Since:</span>
+                    <span class="info-value">{{ object.created_at|date:"F d, Y" }}</span>
+                </div>
+                {% if object.vehicle_count > 0 %}
+                <div style="margin-top: 15px;">
+                    <a href="{% url 'go_data:owner_detail' object.pk %}" class="btn btn-sm btn-outline">
+                        <i class="icon">👁️</i> View Owner Details
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Metadata -->
+            <div class="metadata-section">
+                <h4><i class="icon">📊</i> System Metadata</h4>
+                <div class="metadata-grid">
+                    <div class="metadata-item">
+                        <span class="metadata-label">Created</span>
+                        <span class="metadata-value">{{ object.created_at|date:"M d, Y H:i" }}</span>
+                    </div>
+                    <div class="metadata-item">
+                        <span class="metadata-label">Last Updated</span>
+                        <span class="metadata-value">{{ object.updated_at|date:"M d, Y H:i" }}</span>
+                    </div>
+                    <div class="metadata-item">
+                        <span class="metadata-label">Created By</span>
+                        <span class="metadata-value">{{ object.created_by|default:"System" }}</span>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Quick Tips Card -->
+    <div class="card" style="margin-top: 20px; background: #f8f9fa;">
+        <div class="card-header">
+            <h4><i class="icon">💡</i> Quick Tips</h4>
+        </div>
+        <div class="card-body">
+            <ul style="margin: 0; padding-left: 20px;">
+                <li>Owner ID is automatically generated (e.g., OWN000001)</li>
+                <li>Owner names should be unique to avoid confusion</li>
+                <li>You can deactivate owners instead of deleting them if they have vehicles</li>
+                <li>Active owners appear in vehicle registration forms</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function() {
+        // Form validation
+        const form = document.querySelector('form');
+        form.addEventListener('submit', function(e) {
+            const nameInput = document.getElementById('{{ form.name.id_for_label }}');
+            
+            if (!nameInput.value.trim()) {
+                e.preventDefault();
+                alert('Please enter the owner\'s name.');
+                nameInput.focus();
+            }
+        });
+        
+        // Character counter for name (optional)
+        const nameInput = document.getElementById('{{ form.name.id_for_label }}');
+        if (nameInput) {
+            const maxLength = 100;
+            const counter = document.createElement('small');
+            counter.className = 'help-text';
+            counter.style.float = 'right';
+            nameInput.parentNode.appendChild(counter);
+            
+            function updateCounter() {
+                const remaining = maxLength - nameInput.value.length;
+                counter.textContent = `${remaining} characters remaining`;
+                counter.style.color = remaining < 10 ? '#f44336' : '#666';
+            }
+            
+            nameInput.addEventListener('input', updateCounter);
+            updateCounter();
+        }
+    })();
+</script>
 {% endblock %}

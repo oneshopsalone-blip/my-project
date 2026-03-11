@@ -100,7 +100,6 @@ class VehicleType(models.Model):
         """Get all active vehicle types"""
         return cls.objects.filter(is_active=True)
 
-
 # ============================================================================
 # VEHICLE CATEGORY MODEL
 # ============================================================================
@@ -114,8 +113,7 @@ class VehicleCategory(models.Model):
     code = models.CharField(
         max_length=10,
         help_text=_("e.g., AP1, B1, B2, C1"),
-        blank=True,
-        verbose_name=_("Code")
+        verbose_name=_("Code")  # Removed blank=True - make it required
     )
     
     name = models.CharField(
@@ -158,32 +156,23 @@ class VehicleCategory(models.Model):
         return f"{self.vehicle_type.code} - {self.code}"
     
     def save(self, *args, **kwargs):
-        """Auto-generate code if not provided"""
+        # Remove auto-generation - just validate that code is provided
         if not self.code:
-            self.code = self._generate_code()
-        super().save(*args, **kwargs)
-    
-    def _generate_code(self) -> str:
-        """Generate a unique code"""
-        if self.name:
-            # Try to extract code from name if it looks like AP1, B1, etc.
-            match = re.search(r'([A-Z0-9]{2,4})', self.name.upper())
-            if match:
-                base_code = match.group(1)
-            else:
-                base_code = re.sub(r'[^A-Z]', '', self.name[:3].upper())
-                if not base_code:
-                    base_code = "CAT"
-        else:
-            base_code = "CAT"
+            raise ValidationError({'code': _('Code is required.')})
         
-        # Make it unique within the vehicle type
-        code = base_code
-        counter = 1
-        while VehicleCategory.objects.filter(vehicle_type=self.vehicle_type, code=code).exists():
-            code = f"{base_code}{counter}"
-            counter += 1
-        return code
+        # Ensure code is uppercase
+        self.code = self.code.upper()
+        
+        # Check uniqueness within vehicle type
+        if VehicleCategory.objects.filter(
+            vehicle_type=self.vehicle_type,
+            code=self.code
+        ).exclude(pk=self.pk).exists():
+            raise ValidationError({
+                'code': _('A category with this code already exists for this vehicle type.')
+            })
+        
+        super().save(*args, **kwargs)
     
     @classmethod
     def get_active_categories(cls, vehicle_type=None):

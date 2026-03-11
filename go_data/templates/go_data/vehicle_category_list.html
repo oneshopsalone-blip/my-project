@@ -1,57 +1,687 @@
 {% extends 'go_data/base.html' %}
+{% load static %}
 
 {% block title %}Vehicle Categories{% endblock %}
 
+{% block extra_css %}
+<style>
+    :root {
+        --primary-color: #4361ee;
+        --success-color: #2ecc71;
+        --danger-color: #e74c3c;
+        --warning-color: #f39c12;
+        --dark-color: #2c3e50;
+        --light-bg: #f8f9fa;
+        --border-color: #e9ecef;
+    }
+
+    /* Page Header */
+    .page-header {
+        background: white;
+        padding: 1.5rem 2rem;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        margin-bottom: 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title {
+        margin: 0;
+        font-size: 1.8rem;
+        font-weight: 600;
+        color: var(--dark-color);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .title-icon {
+        font-size: 2rem;
+    }
+
+    .total-badge {
+        background: var(--primary-color);
+        color: white;
+        padding: 0.3rem 0.8rem;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        margin-left: 1rem;
+    }
+
+    /* Filters Bar */
+    .filters-bar {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        margin-bottom: 1.5rem;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+    }
+
+    .filter-group {
+        position: relative;
+    }
+
+    .filter-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .filter-group select,
+    .filter-group input {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        border: 2px solid var(--border-color);
+        border-radius: 8px;
+        font-size: 0.95rem;
+        transition: all 0.2s;
+        background: white;
+    }
+
+    .filter-group select:focus,
+    .filter-group input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+    }
+
+    /* Stats Badges */
+    .stats-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.4rem 0.8rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        background: #e9ecef;
+        color: #495057;
+    }
+
+    .stats-badge.vehicles {
+        background: #e3f2fd;
+        color: #1976d2;
+    }
+
+    .filtered-badge {
+        background: #fef3c7;
+        color: #92400e;
+        margin-left: 1rem;
+        font-size: 0.8rem;
+    }
+
+    /* Vehicle Type Badge */
+    .vehicle-type-badge {
+        display: inline-block;
+        padding: 0.4rem 0.8rem;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        background: var(--primary-color);
+        color: white;
+    }
+
+    /* Status Badges */
+    .status-badge {
+        display: inline-block;
+        padding: 0.4rem 0.8rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-align: center;
+        min-width: 70px;
+    }
+
+    .status-badge.active {
+        background: #d1fae5;
+        color: #065f46;
+    }
+
+    .status-badge.inactive {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    /* Table Styles */
+    .card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+        overflow: hidden;
+    }
+
+    .card-header {
+        padding: 1.2rem 1.5rem;
+        background: white;
+        border-bottom: 2px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .card-header h3 {
+        margin: 0;
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: var(--dark-color);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .table-responsive {
+        overflow-x: auto;
+    }
+
+    .table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .table th {
+        text-align: left;
+        padding: 1rem 1.5rem;
+        background: #f8fafc;
+        font-weight: 600;
+        font-size: 0.85rem;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border-bottom: 2px solid var(--border-color);
+    }
+
+    .table td {
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        vertical-align: middle;
+    }
+
+    .table tbody tr {
+        transition: background-color 0.2s;
+    }
+
+    .table tbody tr:hover {
+        background-color: #f8fafc;
+    }
+
+    .inactive-row {
+        opacity: 0.7;
+        background-color: #f8f9fa;
+    }
+
+    /* Category Code */
+    .category-code {
+        font-family: 'Monaco', 'Menlo', monospace;
+        font-weight: 600;
+        color: var(--primary-color);
+        background: #eef2ff;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.9rem;
+    }
+
+    /* Date Info */
+    .date-info {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .date-main {
+        font-weight: 500;
+        color: var(--dark-color);
+    }
+
+    .date-small {
+        font-size: 0.8rem;
+        color: #94a3b8;
+        margin-top: 0.2rem;
+    }
+
+    /* Action Buttons */
+    .action-buttons {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: none;
+        cursor: pointer;
+    }
+
+    .btn-sm {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.8rem;
+    }
+
+    .btn-outline {
+        background: transparent;
+        border: 1px solid var(--border-color);
+        color: #64748b;
+    }
+
+    .btn-outline:hover {
+        background: #f8fafc;
+        border-color: #94a3b8;
+        color: var(--dark-color);
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: #3651d4;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px rgba(67, 97, 238, 0.2);
+    }
+
+    .btn-danger {
+        background: var(--danger-color);
+        color: white;
+    }
+
+    .btn-danger:hover:not(.disabled) {
+        background: #c0392b;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px rgba(231, 76, 60, 0.2);
+    }
+
+    .btn-danger.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        pointer-events: none;
+    }
+
+    /* Summary Stats */
+    .summary-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-top: 1.5rem;
+        padding: 1.5rem;
+        background: #f8fafc;
+        border-radius: 12px;
+    }
+
+    .summary-item {
+        text-align: center;
+    }
+
+    .summary-label {
+        font-size: 0.8rem;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 0.3rem;
+    }
+
+    .summary-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: var(--dark-color);
+        line-height: 1.2;
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+    }
+
+    .empty-state-icon {
+        font-size: 4rem;
+        margin-bottom: 1.5rem;
+        opacity: 0.5;
+    }
+
+    .empty-state h3 {
+        font-size: 1.5rem;
+        color: var(--dark-color);
+        margin-bottom: 0.5rem;
+    }
+
+    .empty-state p {
+        color: #64748b;
+        margin-bottom: 1.5rem;
+    }
+
+    /* Text utilities */
+    .text-muted {
+        color: #94a3b8;
+        font-size: 0.8rem;
+        margin-left: 0.3rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .page-header {
+            padding: 1rem;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .filters-bar {
+            grid-template-columns: 1fr;
+        }
+
+        .table td {
+            padding: 0.75rem;
+        }
+
+        .action-buttons {
+            flex-direction: column;
+        }
+
+        .btn-sm {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .summary-stats {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="page-header">
-    <h1 class="page-title">Vehicle Categories</h1>
+    <h1 class="page-title">
+        <span class="title-icon">📋</span>
+        Vehicle Categories
+        <span class="total-badge">{{ categories|length }} Total</span>
+    </h1>
     <div class="page-actions">
-        <a href="{% url 'go_data:dashboard' %}" class="btn btn-outline">← Back to Dashboard</a>
-        <a href="{% url 'go_data:vehicle_category_create' %}" class="btn btn-primary">➕ Add New Category</a>
+        <a href="{% url 'go_data:dashboard' %}" class="btn btn-outline">
+            <span>←</span> Dashboard
+        </a>
+        <a href="{% url 'go_data:vehicle_category_create' %}" class="btn btn-primary">
+            <span>➕</span> Add Category
+        </a>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="filters-bar">
+    <div class="filter-group">
+        <label for="typeFilter">Vehicle Type</label>
+        <select id="typeFilter">
+            <option value="">All Vehicle Types</option>
+            {% for type in vehicle_types %}
+            <option value="{{ type.id }}" {% if request.GET.type == type.id|stringformat:"s" %}selected{% endif %}>
+                {{ type.code }} - {{ type.name }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="filter-group">
+        <label for="statusFilter">Status</label>
+        <select id="statusFilter">
+            <option value="">All Status</option>
+            <option value="active" {% if request.GET.status == 'active' %}selected{% endif %}>Active Only</option>
+            <option value="inactive" {% if request.GET.status == 'inactive' %}selected{% endif %}>Inactive Only</option>
+        </select>
+    </div>
+    <div class="filter-group">
+        <label for="searchInput">Search</label>
+        <input type="text" 
+               id="searchInput" 
+               placeholder="Code, name, or type..." 
+               value="{{ request.GET.search|default:'' }}">
     </div>
 </div>
 
 <div class="card">
     <div class="card-header">
-        <h3>All Vehicle Categories</h3>
+        <h3>
+            <span>📋</span>
+            Category Directory
+            {% if request.GET.type or request.GET.status or request.GET.search %}
+            <span class="stats-badge filtered-badge">Filtered</span>
+            {% endif %}
+        </h3>
+        {% if request.GET.type or request.GET.status or request.GET.search %}
+        <a href="{% url 'go_data:vehicle_category_list' %}" class="btn btn-sm btn-outline">
+            <span>✕</span> Clear Filters
+        </a>
+        {% endif %}
     </div>
+    
     <div class="card-body">
         {% if categories %}
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Code</th>
-                    <th>Name</th>
-                    <th>Created</th>
-                    <th>Updated</th>
-                    <th>Vehicles</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for category in categories %}
-                <tr>
-                    <td><strong>{{ category.code }}</strong></td>
-                    <td>{{ category.name|default:"—" }}</td>
-                    <td>{{ category.created_at|date:"M d, Y" }}</td>
-                    <td>{{ category.updated_at|date:"M d, Y" }}</td>
-                    <td>{{ category.vehicles.count }}</td>
-                    <td>
-                        <a href="{% url 'go_data:vehicle_category_update' category.pk %}" class="btn btn-sm btn-outline">✏️ Edit</a>
-                        <a href="{% url 'go_data:vehicle_category_delete' category.pk %}" class="btn btn-sm btn-danger">🗑️ Delete</a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <div class="table-responsive">
+            <table class="table" id="categoriesTable">
+                <thead>
+                    <tr>
+                        <th>Code</th>
+                        <th>Name</th>
+                        <th>Vehicle Type</th>
+                        <th>Status</th>
+                        <th>Usage</th>
+                        <th>Last Updated</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for category in categories %}
+                    <tr class="category-row {% if not category.is_active %}inactive-row{% endif %}"
+                        data-type-id="{{ category.vehicle_type.id }}"
+                        data-status="{% if category.is_active %}active{% else %}inactive{% endif %}"
+                        data-search="{{ category.code|lower }} {{ category.name|lower }} {{ category.vehicle_type.code|lower }}">
+                        <td>
+                            <span class="category-code">{{ category.code }}</span>
+                        </td>
+                        <td>
+                            <span class="category-name">{{ category.name|default:"—" }}</span>
+                        </td>
+                        <td>
+                            <span class="vehicle-type-badge">
+                                {{ category.vehicle_type.code }}
+                            </span>
+                            <span class="text-muted">{{ category.vehicle_type.name }}</span>
+                        </td>
+                        <td>
+                            {% if category.is_active %}
+                            <span class="status-badge active">Active</span>
+                            {% else %}
+                            <span class="status-badge inactive">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="stats-badge vehicles" title="Vehicles in this category">
+                                <span>🚗</span> {{ category.vehicle_count|default:category.vehicles.count }}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="date-info">
+                                <span class="date-main">{{ category.updated_at|date:"M d, Y" }}</span>
+                                <span class="date-small">{{ category.updated_at|timesince }} ago</span>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="action-buttons">
+                                <a href="{% url 'go_data:vehicle_category_update' category.pk %}" 
+                                   class="btn btn-sm btn-outline"
+                                   title="Edit Category">
+                                    <span>✏️</span> Edit
+                                </a>
+                                <a href="{% url 'go_data:vehicle_category_delete' category.pk %}" 
+                                   class="btn btn-sm btn-danger {% if category.vehicles.count > 0 %}disabled{% endif %}"
+                                   title="{% if category.vehicles.count > 0 %}Cannot delete - has vehicles assigned{% else %}Delete Category{% endif %}"
+                                   {% if category.vehicles.count > 0 %}
+                                   onclick="return false;"
+                                   {% endif %}>
+                                    <span>🗑️</span> Delete
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Summary Stats -->
+        <div class="summary-stats">
+            <div class="summary-item">
+                <div class="summary-label">Total Categories</div>
+                <div class="summary-value">{{ categories|length }}</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-label">Active Categories</div>
+                <div class="summary-value">{{ active_categories|default:categories|length }}</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-label">Vehicle Types</div>
+                <div class="summary-value">{{ vehicle_types|length }}</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-label">Total Vehicles</div>
+                <div class="summary-value">{{ total_vehicles|default:"0" }}</div>
+            </div>
+        </div>
+        
         {% else %}
-        <div class="empty-state" style="text-align: center; padding: 40px;">
-            <div style="font-size: 3rem;">📋</div>
-            <h3>No Vehicle Categories Found</h3>
-            <p>Get started by creating your first vehicle category.</p>
-            <a href="{% url 'go_data:vehicle_category_create' %}" class="btn btn-primary">Add Category</a>
+        <div class="empty-state">
+            <div class="empty-state-icon">📋</div>
+            <h3>No Categories Found</h3>
+            <p>
+                {% if request.GET.type or request.GET.status or request.GET.search %}
+                    No categories match your filter criteria.
+                {% else %}
+                    Categories help organize vehicles within each vehicle type (e.g., AP1, B1, C1).
+                {% endif %}
+            </p>
+            {% if request.GET.type or request.GET.status or request.GET.search %}
+            <a href="{% url 'go_data:vehicle_category_list' %}" class="btn btn-outline">
+                <span>✕</span> Clear Filters
+            </a>
+            {% else %}
+            <a href="{% url 'go_data:vehicle_category_create' %}" class="btn btn-primary">
+                <span>➕</span> Add First Category
+            </a>
+            {% endif %}
         </div>
         {% endif %}
     </div>
 </div>
+
+<script>
+    (function() {
+        // Cache DOM elements
+        const typeFilter = document.getElementById('typeFilter');
+        const statusFilter = document.getElementById('statusFilter');
+        const searchInput = document.getElementById('searchInput');
+        const rows = document.querySelectorAll('.category-row');
+        
+        // Debounce function
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+        
+        // Filter function
+        function filterTable() {
+            const selectedType = typeFilter.value;
+            const selectedStatus = statusFilter.value;
+            const searchTerm = searchInput.value.toLowerCase().trim();
+            
+            rows.forEach(row => {
+                let show = true;
+                
+                // Filter by type
+                if (selectedType && row.dataset.typeId !== selectedType) {
+                    show = false;
+                }
+                
+                // Filter by status
+                if (show && selectedStatus && row.dataset.status !== selectedStatus) {
+                    show = false;
+                }
+                
+                // Filter by search
+                if (show && searchTerm) {
+                    const searchData = row.dataset.search || '';
+                    if (!searchData.includes(searchTerm)) {
+                        show = false;
+                    }
+                }
+                
+                row.style.display = show ? '' : 'none';
+            });
+        }
+        
+        // Update URL with filters
+        function updateUrl() {
+            const url = new URL(window.location.href);
+            const params = new URLSearchParams();
+            
+            if (typeFilter.value) params.set('type', typeFilter.value);
+            if (statusFilter.value) params.set('status', statusFilter.value);
+            if (searchInput.value) params.set('search', searchInput.value);
+            
+            const queryString = params.toString();
+            const newUrl = window.location.pathname + (queryString ? '?' + queryString : '');
+            
+            // Update URL without reloading page
+            window.history.replaceState({}, '', newUrl);
+        }
+        
+        // Debounced search
+        const debouncedSearch = debounce(() => {
+            filterTable();
+            updateUrl();
+        }, 300);
+        
+        // Add event listeners
+        typeFilter.addEventListener('change', () => {
+            filterTable();
+            updateUrl();
+        });
+        
+        statusFilter.addEventListener('change', () => {
+            filterTable();
+            updateUrl();
+        });
+        
+        searchInput.addEventListener('input', debouncedSearch);
+        
+        // Initial filter if URL has parameters
+        if (window.location.search) {
+            filterTable();
+        }
+    })();
+</script>
 {% endblock %}

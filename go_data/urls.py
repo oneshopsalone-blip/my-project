@@ -57,6 +57,7 @@ urlpatterns = [
     
     # Print tracking
     path('vehicle/<int:pk>/track-print/', views.track_print, name='track_print'),
+    path('api/printed-vehicles/', views.get_printed_vehicles, name='printed_vehicles'),
     
     # ============================================================================
     # API ENDPOINTS

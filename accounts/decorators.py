@@ -52,7 +52,7 @@ def superuser_required(view_func: Callable) -> Callable:
                 f"to {request.path}"
             )
             
-            return redirect('vehicles:dashboard')
+            return redirect('go_data:dashboard')
         
         return view_func(request, *args, **kwargs)
     
@@ -114,7 +114,7 @@ def staff_required(view_func: Callable) -> Callable:
         
         if not request.user.is_staff:
             messages.error(request, "Access denied. Staff privileges required.")
-            return redirect('vehicles:dashboard')
+            return redirect('go_data:dashboard')
         
         return view_func(request, *args, **kwargs)
     
@@ -149,7 +149,7 @@ def role_required(allowed_roles: list) -> Callable:
                     f"Access denied. This area requires one of these roles: "
                     f"{', '.join(allowed_roles)}"
                 )
-                return redirect('vehicles:dashboard')
+                return redirect('go_data:dashboard')
             
             return view_func(request, *args, **kwargs)
         
@@ -197,6 +197,6 @@ def prevent_double_login(view_func: Callable) -> Callable:
     def _wrapped_view(request, *args, **kwargs):
         if request.user.is_authenticated:
             messages.info(request, "You are already logged in.")
-            return redirect('vehicles:dashboard')
+            return redirect('go_data:dashboard')
         return view_func(request, *args, **kwargs)
     return _wrapped_view

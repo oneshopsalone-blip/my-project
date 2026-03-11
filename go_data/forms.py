@@ -54,7 +54,8 @@ class VehicleCategoryForm(forms.ModelForm):
             }),
             'code': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': _('e.g., AP1')
+                'placeholder': _('e.g., AP1'),
+                'required': True  # Make it required
             }),
             'name': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -69,37 +70,25 @@ class VehicleCategoryForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         # Only show active vehicle types
         self.fields['vehicle_type'].queryset = VehicleType.get_active_types()
+        self.fields['code'].required = True  # Ensure code is required
     
     def clean_code(self):
-        """Ensure code is uppercase"""
+        """Ensure code is uppercase and doesn't contain spaces"""
         code = self.cleaned_data.get('code')
         if code:
-            return code.upper()
+            # Remove spaces and convert to uppercase
+            code = code.upper().replace(' ', '')
+            
+            # Optional: Validate format if needed
+            if not re.match(r'^[A-Z0-9]+$', code):
+                raise ValidationError(
+                    _('Code can only contain letters and numbers.')
+                )
         return code
     
-    def clean(self):
-        """Validate that code is unique within vehicle type"""
-        cleaned_data = super().clean()
-        vehicle_type = cleaned_data.get('vehicle_type')
-        code = cleaned_data.get('code')
-        
-        if vehicle_type and code:
-            # Check for existing category with same vehicle_type and code
-            existing = VehicleCategory.objects.filter(
-                vehicle_type=vehicle_type,
-                code=code
-            )
-            if self.instance.pk:
-                existing = existing.exclude(pk=self.instance.pk)
-            
-            if existing.exists():
-                raise ValidationError({
-                    'code': _('A category with this code already exists for this vehicle type.')
-                })
-        
-        return cleaned_data
+    # Remove the clean method that checks uniqueness since we now do it in the model
 
-
+    
 class OwnerForm(forms.ModelForm):
     """Form for creating and updating vehicle owners"""
     

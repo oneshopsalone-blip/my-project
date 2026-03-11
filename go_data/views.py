@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
 
 from django.shortcuts import render, get_object_or_404, redirect
-from django.http import FileResponse, JsonResponse, HttpResponse
+from django.http import FileResponse, JsonResponse
 from django.views.generic import ListView
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -19,6 +19,7 @@ from django.db import IntegrityError
 from django.core.exceptions import ValidationError
 from django.views.decorators.http import require_POST, require_GET
 from django.views.decorators.csrf import ensure_csrf_cookie
+from django.db.models import Prefetch
 
 from dateutil.relativedelta import relativedelta
 
@@ -140,6 +141,16 @@ def get_owner_print_summary(owner_id: int, days: int = 30) -> Dict[str, Any]:
     )
 
 
+def get_today_printed_vehicles():
+    """Get vehicles printed today."""
+    today = timezone.now().date()
+    return Vehicle.objects.filter(
+        print_logs__printed_at__date=today
+    ).select_related('vehicle_type', 'category', 'owner').distinct()
+
+
+
+
 # ============================================================================
 # DASHBOARD VIEW
 # ============================================================================
@@ -156,12 +167,12 @@ class VehicleDashboardView(LoginRequiredMixin, ListView):
     login_url = 'accounts:login'
 
     def get_queryset(self):
-        """Apply search and filter to queryset"""
+        """Apply search and filter to queryset - optionally exclude printed vehicles"""
         queryset = Vehicle.objects.select_related(
             'vehicle_type', 'category', 'owner'
         ).all()
         
-        # Search filter
+        # Apply search filter
         search = self.request.GET.get('search', '').strip()
         if search:
             queryset = queryset.filter(
@@ -172,22 +183,22 @@ class VehicleDashboardView(LoginRequiredMixin, ListView):
                 Q(vehicle_type__name__icontains=search)
             )
         
-        # Owner filter
+        # Apply owner filter
         owner_id = self.request.GET.get('owner')
         if owner_id and owner_id.isdigit():
             queryset = queryset.filter(owner_id=owner_id)
         
-        # Type filter
+        # Apply type filter
         type_id = self.request.GET.get('type')
         if type_id and type_id.isdigit():
             queryset = queryset.filter(vehicle_type_id=type_id)
         
-        # Category filter
+        # Apply category filter
         category_id = self.request.GET.get('category')
         if category_id and category_id.isdigit():
             queryset = queryset.filter(category_id=category_id)
         
-        # Status filter
+        # Apply status filter
         status = self.request.GET.get('status')
         today = timezone.now().date()
         
@@ -205,20 +216,70 @@ class VehicleDashboardView(LoginRequiredMixin, ListView):
         elif status == 'inactive':
             queryset = queryset.filter(is_active=False)
         
+        # Optionally exclude printed vehicles
+        show_printed = self.request.GET.get('show_printed') == 'true'
+        if not show_printed:
+            printed_vehicle_ids = PrintLog.objects.filter(
+                printed_at__date=timezone.now().date()
+            ).values_list('vehicle_id', flat=True)
+            queryset = queryset.exclude(id__in=printed_vehicle_ids)
+        
         return queryset.order_by('-created_at')
+    
+    def get_vehicles_by_owner(self):
+        """Group vehicles by owner"""
+        queryset = self.get_queryset()
+        
+        # Get all owners with their vehicles
+        owners = Owner.objects.filter(is_active=True).prefetch_related(
+            Prefetch('vehicles', 
+                    queryset=queryset,
+                    to_attr='filtered_vehicles')
+        )
+        
+        vehicles_by_owner = []
+        for owner in owners:
+            owner_vehicles = getattr(owner, 'filtered_vehicles', [])
+            if owner_vehicles:  # Only include owners with vehicles
+                vehicles_by_owner.append({
+                    'owner': owner,
+                    'vehicles': owner_vehicles,
+                    'vehicle_count': len(owner_vehicles),
+                    'print_count': PrintLog.objects.filter(
+                        vehicle__owner=owner,
+                        printed_at__date=timezone.now().date()
+                    ).count()
+                })
+        
+        return vehicles_by_owner
 
     def get_context_data(self, **kwargs):
         """Add additional context data"""
         context = super().get_context_data(**kwargs)
         
+        today = timezone.now().date()
+        
+        # Get printed vehicles for today
+        printed_vehicles = get_today_printed_vehicles()
+        
+        # Get vehicles grouped by owner
+        vehicles_by_owner = self.get_vehicles_by_owner()
+        
         # Get date filters
         date_from_obj, date_to_obj = get_date_filter_params(self.request)
         
-        # Build owners with print counts
-        owners_with_counts = self._get_owners_with_counts(date_from_obj, date_to_obj)
+        # Check if print stats should be shown
+        show_print_stats = self.request.GET.get('show_stats') == 'true'
+        
+        # Build owners with print counts (only if stats are shown)
+        owners_with_counts = []
+        total_prints = 0
+        
+        if show_print_stats:
+            owners_with_counts = self._get_owners_with_counts(date_from_obj, date_to_obj)
+            total_prints = sum(o['print_count'] for o in owners_with_counts)
         
         # Get statistics
-        today = timezone.now().date()
         stats = self._get_dashboard_stats(today)
         
         # Prepare filter values for template
@@ -228,7 +289,14 @@ class VehicleDashboardView(LoginRequiredMixin, ListView):
             
             # Owner data
             'owners_with_counts': owners_with_counts,
-            'total_prints': sum(o['print_count'] for o in owners_with_counts),
+            'total_prints': total_prints,
+            
+            # Vehicles by owner
+            'vehicles_by_owner': vehicles_by_owner,
+            
+            # Printed vehicles
+            'printed_vehicles': printed_vehicles,
+            'printed_count': printed_vehicles.count(),
             
             # Filter values
             'selected_owner_id': self.request.GET.get('owner'),
@@ -238,6 +306,8 @@ class VehicleDashboardView(LoginRequiredMixin, ListView):
             'search_query': self.request.GET.get('search', ''),
             'date_from': date_from_obj,
             'date_to': date_to_obj,
+            'show_print_stats': show_print_stats,
+            'show_printed': self.request.GET.get('show_printed') == 'true',
             
             # Forms
             'search_form': VehicleSearchForm(self.request.GET),
@@ -247,7 +317,7 @@ class VehicleDashboardView(LoginRequiredMixin, ListView):
         })
         
         return context
-    
+
     def _get_owners_with_counts(self, date_from=None, date_to=None):
         """Get owners with their print counts within date range"""
         owners = Owner.objects.filter(is_active=True)
@@ -306,7 +376,6 @@ class VehicleDashboardView(LoginRequiredMixin, ListView):
 # ============================================================================
 # PRINT TRACKING
 # ============================================================================
-
 @login_required(login_url='accounts:login')
 @require_POST
 @ensure_csrf_cookie
@@ -323,7 +392,10 @@ def track_print(request, pk):
         JSON response with tracking result
     """
     try:
-        vehicle = get_object_or_404(Vehicle, pk=pk)
+        vehicle = get_object_or_404(
+            Vehicle.objects.select_related('owner', 'vehicle_type'), 
+            pk=pk
+        )
         
         print_log = PrintLog.objects.create(
             vehicle=vehicle,
@@ -336,11 +408,32 @@ def track_print(request, pk):
             f"Print tracked: Vehicle {pk} ({vehicle.vin}) by {request.user.username}"
         )
         
+        # Get updated printed count for today
+        today = timezone.now().date()
+        today_prints = PrintLog.objects.filter(
+            printed_at__date=today
+        ).values_list('vehicle_id', flat=True).distinct().count()
+        
+        # Get the printed vehicle data for immediate display
+        printed_vehicle_data = {
+            'id': vehicle.id,
+            'vin': vehicle.vin,
+            'vehicle_reg': vehicle.vehicle_reg,
+            'vehicle_type_code': vehicle.vehicle_type.code if vehicle.vehicle_type else 'N/A',
+            'owner_name': vehicle.owner.name if vehicle.owner else 'No Owner',
+            'owner_id': vehicle.owner.owner_id if vehicle.owner else '',
+            'last_printed': print_log.printed_at.isoformat(),
+        }
+        
         return JsonResponse({
             'success': True,
             'print_id': print_log.id,
             'timestamp': print_log.printed_at.isoformat(),
-            'message': 'Print tracked successfully'
+            'message': 'Print tracked successfully',
+            'printed_count': today_prints,
+            'vehicle_id': pk,
+            'removed': True,
+            'printed_vehicle': printed_vehicle_data,
         })
         
     except Vehicle.DoesNotExist:
@@ -351,6 +444,53 @@ def track_print(request, pk):
         }, status=404)
     except Exception as e:
         logger.error(f"Error tracking print for vehicle {pk}: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'error': 'Internal server error'
+        }, status=500)
+
+@login_required(login_url='accounts:login')
+@require_GET
+def get_printed_vehicles(request):
+    """
+    API endpoint to get today's printed vehicles.
+    
+    Args:
+        request: HTTP request object
+        
+    Returns:
+        JSON response with printed vehicles
+    """
+    try:
+        today = timezone.now().date()
+        printed_vehicles = Vehicle.objects.filter(
+            print_logs__printed_at__date=today
+        ).select_related('vehicle_type', 'category', 'owner').distinct()
+        
+        vehicles_data = []
+        for vehicle in printed_vehicles:
+            last_print = vehicle.print_logs.filter(printed_at__date=today).last()
+            vehicles_data.append({
+                'id': vehicle.id,
+                'vin': vehicle.vin,
+                'vehicle_reg': vehicle.vehicle_reg,
+                'vehicle_type_code': vehicle.vehicle_type.code if vehicle.vehicle_type else 'N/A',
+                'owner_name': vehicle.owner.name if vehicle.owner else 'No Owner',
+                'owner_id': vehicle.owner.owner_id if vehicle.owner else '',
+                'category_code': vehicle.category.code if vehicle.category else '',
+                'expiry_date': vehicle.expiry_date_formatted,
+                'print_count': vehicle.print_logs.filter(printed_at__date=today).count(),
+                'last_printed': last_print.printed_at.isoformat() if last_print else None,
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'vehicles': vehicles_data,
+            'count': len(vehicles_data)
+        })
+        
+    except Exception as e:
+        logger.error(f"Error fetching printed vehicles: {str(e)}")
         return JsonResponse({
             'success': False,
             'error': 'Internal server error'
@@ -369,56 +509,61 @@ def get_print_stats(request):
     Returns:
         JSON response with print statistics
     """
-    vehicle_id = request.GET.get('vehicle_id')
-    owner_id = request.GET.get('owner_id')
-    date_from_obj, date_to_obj = get_date_filter_params(request)
-    
-    queryset = PrintLog.objects.select_related('vehicle')
-    
-    if vehicle_id and vehicle_id.isdigit():
-        queryset = queryset.filter(vehicle_id=vehicle_id)
-    
-    if owner_id and owner_id.isdigit():
-        queryset = queryset.filter(vehicle__owner_id=owner_id)
-    
-    if date_from_obj:
-        queryset = queryset.filter(printed_at__date__gte=date_from_obj)
-    if date_to_obj:
-        queryset = queryset.filter(printed_at__date__lte=date_to_obj)
-    
-    # Get popular vehicles
-    days = int(request.GET.get('days', 30))
-    popular_vehicles = get_popular_vehicles(limit=5, days=days)
-    
-    # Group by date (using database-specific extraction)
-    stats_by_date = []
     try:
-        # PostgreSQL and SQLite compatible approach
-        from django.db.models.functions import TruncDate
-        stats_by_date = queryset.annotate(
-            print_date=TruncDate('printed_at')
-        ).values('print_date').annotate(
-            count=Count('id')
-        ).order_by('-print_date')[:30]  # Limit to last 30 days
-    except Exception as e:
-        logger.warning(f"Date truncation failed: {e}")
-        # Fallback to simple list
+        vehicle_id = request.GET.get('vehicle_id')
+        owner_id = request.GET.get('owner_id')
+        date_from_obj, date_to_obj = get_date_filter_params(request)
+        
+        queryset = PrintLog.objects.select_related('vehicle')
+        
+        if vehicle_id and vehicle_id.isdigit():
+            queryset = queryset.filter(vehicle_id=vehicle_id)
+        
+        if owner_id and owner_id.isdigit():
+            queryset = queryset.filter(vehicle__owner_id=owner_id)
+        
+        if date_from_obj:
+            queryset = queryset.filter(printed_at__date__gte=date_from_obj)
+        if date_to_obj:
+            queryset = queryset.filter(printed_at__date__lte=date_to_obj)
+        
+        # Get popular vehicles
+        days = int(request.GET.get('days', 30))
+        popular_vehicles = get_popular_vehicles(limit=5, days=days)
+        
+        # Group by date
         stats_by_date = []
-    
-    return JsonResponse({
-        'success': True,
-        'total': queryset.count(),
-        'by_date': list(stats_by_date),
-        'popular_vehicles': [
-            {
-                'id': v.id,
-                'vin': v.vin,
-                'vehicle_reg': v.vehicle_reg,
-                'print_count': getattr(v, 'print_count', 0),
-                'owner_name': v.owner.name if v.owner else ''
-            } for v in popular_vehicles
-        ]
-    })
+        try:
+            from django.db.models.functions import TruncDate
+            stats_by_date = queryset.annotate(
+                print_date=TruncDate('printed_at')
+            ).values('print_date').annotate(
+                count=Count('id')
+            ).order_by('-print_date')[:30]
+        except Exception as e:
+            logger.warning(f"Date truncation failed: {e}")
+        
+        return JsonResponse({
+            'success': True,
+            'total': queryset.count(),
+            'by_date': list(stats_by_date),
+            'popular_vehicles': [
+                {
+                    'id': v.id,
+                    'vin': v.vin,
+                    'vehicle_reg': v.vehicle_reg,
+                    'print_count': getattr(v, 'print_count', 0),
+                    'owner_name': v.owner.name if v.owner else ''
+                } for v in popular_vehicles
+            ]
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting print stats: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'error': 'Internal server error'
+        }, status=500)
 
 
 # ============================================================================
@@ -447,13 +592,9 @@ def vehicle_create(request):
     else:
         form = VehicleForm(user=request.user)
     
-    # Get data for dependent dropdowns
-    vehicle_types = VehicleType.get_active_types()
-    
     return render(request, 'go_data/vehicle_form.html', {
         'form': form,
         'title': 'Add New Vehicle',
-        'vehicle_types': vehicle_types,
         'action': 'create'
     })
 
@@ -485,15 +626,13 @@ def vehicle_update(request, pk):
     else:
         form = VehicleForm(instance=vehicle, user=request.user)
     
-    # Get data for dependent dropdowns
-    vehicle_types = VehicleType.get_active_types()
+    # Get categories for the vehicle's type for the form
     categories = VehicleCategory.get_active_categories(vehicle_type=vehicle.vehicle_type)
     
     return render(request, 'go_data/vehicle_form.html', {
         'form': form,
         'vehicle': vehicle,
         'title': f'Edit Vehicle: {vehicle.vehicle_reg or vehicle.vin}',
-        'vehicle_types': vehicle_types,
         'categories': categories,
         'action': 'update'
     })
@@ -544,14 +683,11 @@ def vehicle_detail(request, pk):
     # Get recent print logs
     recent_prints = vehicle.print_logs.select_related().order_by('-printed_at')[:10]
     
-    # Get renewal form
-    renew_form = VehicleRenewForm()
-    
     return render(request, 'go_data/vehicle_detail.html', {
         'vehicle': vehicle,
         'now': timezone.now().date(),
         'recent_prints': recent_prints,
-        'renew_form': renew_form,
+        'renew_form': VehicleRenewForm(),
         'is_expired': vehicle.is_expired(),
         'days_until_expiry': vehicle.days_until_expiry(),
     })
@@ -592,7 +728,6 @@ def vehicle_renew(request, pk):
 # ============================================================================
 # VEHICLE TYPE CRUD
 # ============================================================================
-
 @login_required(login_url='accounts:login')
 def vehicle_type_list(request):
     """List all vehicle types"""
@@ -702,31 +837,49 @@ def vehicle_type_delete(request, pk):
 # ============================================================================
 
 @login_required(login_url='accounts:login')
+# ============================================================================
+# VEHICLE CATEGORY CRUD
+# ============================================================================
+
+@login_required(login_url='accounts:login')
 def vehicle_category_list(request):
     """List all vehicle categories"""
+    vehicle_types = VehicleType.get_active_types()
     categories = VehicleCategory.objects.select_related(
         'vehicle_type'
     ).annotate(
         vehicle_count=Count('vehicles')
     ).all()
+    
     return render(request, 'go_data/vehicle_category_list.html', {
-        'categories': categories
+        'categories': categories,
+        'vehicle_types': vehicle_types,
+        'total_vehicles': Vehicle.objects.count(),
     })
 
 
 @login_required(login_url='accounts:login')
 def vehicle_category_create(request):
     """Create a new vehicle category"""
+    # Get active vehicle types for the template
+    vehicle_types = VehicleType.get_active_types()
+    
     if request.method == 'POST':
         form = VehicleCategoryForm(request.POST)
         if form.is_valid():
             try:
-                category = form.save()
+                # Create category but don't save yet
+                category = form.save(commit=False)
+                # Explicitly set active status
+                category.is_active = True
+                # Now save
+                category.save()
+                
                 messages.success(
                     request, 
                     f'Category {category.code} created successfully for {category.vehicle_type.name}!'
                 )
-                logger.info(f"Vehicle category created: {category.code}")
+                logger.info(f"Vehicle category created: {category.code} by {request.user.username}")
                 return redirect('go_data:vehicle_category_list')
             except (IntegrityError, ValidationError) as e:
                 logger.error(f"Vehicle category creation error: {str(e)}")
@@ -736,28 +889,39 @@ def vehicle_category_create(request):
     else:
         form = VehicleCategoryForm()
     
+    # Calculate any additional context
+    total_vehicles = Vehicle.objects.count()
+    
     return render(request, 'go_data/vehicle_category_form.html', {
         'form': form,
+        'vehicle_types': vehicle_types,
         'title': 'Add Vehicle Category',
-        'action': 'create'
+        'action': 'create',
+        'total_vehicles': total_vehicles,  # Optional: for summary stats
     })
-
 
 @login_required(login_url='accounts:login')
 def vehicle_category_update(request, pk):
     """Update a vehicle category"""
-    category = get_object_or_404(VehicleCategory, pk=pk)
+    # Get the category with related vehicle_type for efficiency
+    category = get_object_or_404(
+        VehicleCategory.objects.select_related('vehicle_type'), 
+        pk=pk
+    )
+    
+    # Get active vehicle types for the template
+    vehicle_types = VehicleType.get_active_types()
     
     if request.method == 'POST':
         form = VehicleCategoryForm(request.POST, instance=category)
         if form.is_valid():
             try:
-                form.save()
+                updated_category = form.save()
                 messages.success(
                     request, 
-                    f'Category {category.code} updated successfully!'
+                    f'Category {updated_category.code} updated successfully!'
                 )
-                logger.info(f"Vehicle category updated: {category.code}")
+                logger.info(f"Vehicle category updated: {updated_category.code} by {request.user.username}")
                 return redirect('go_data:vehicle_category_list')
             except (IntegrityError, ValidationError) as e:
                 logger.error(f"Vehicle category update error: {str(e)}")
@@ -766,14 +930,23 @@ def vehicle_category_update(request, pk):
             handle_form_errors(request, form, "Vehicle Category")
     else:
         form = VehicleCategoryForm(instance=category)
+        
+        # Pre-select the current vehicle type in the form
+        if category.vehicle_type:
+            form.fields['vehicle_type'].initial = category.vehicle_type.id
+    
+    # Calculate additional context data
+    vehicle_count = category.vehicles.count()
     
     return render(request, 'go_data/vehicle_category_form.html', {
         'form': form,
+        'vehicle_types': vehicle_types,
         'object': category,
         'title': f'Edit Category: {category.code}',
-        'action': 'update'
+        'action': 'update',
+        'vehicle_count': vehicle_count,
+        'can_delete': vehicle_count == 0,  # Helper for template
     })
-
 
 @login_required(login_url='accounts:login')
 def vehicle_category_delete(request, pk):
@@ -816,10 +989,21 @@ def vehicle_category_delete(request, pk):
 def owner_list(request):
     """List all owners"""
     owners = Owner.objects.annotate(
-        vehicle_count=Count('vehicles'),
-        print_count=Count('vehicles__print_logs')
+        vehicles_count=Count('vehicles'),  # Changed from vehicle_count
+        prints_count=Count('vehicles__print_logs')  # Changed from print_count
     ).all()
-    return render(request, 'go_data/owner_list.html', {'owners': owners})
+    
+    # Get total statistics
+    total_vehicles = Vehicle.objects.count()
+    total_prints = PrintLog.objects.count()
+    active_owners = owners.filter(is_active=True).count()
+    
+    return render(request, 'go_data/owner_list.html', {
+        'owners': owners,
+        'total_vehicles': total_vehicles,
+        'total_prints': total_prints,
+        'active_owners': active_owners,
+    })
 
 
 @login_required(login_url='accounts:login')
@@ -872,10 +1056,14 @@ def owner_update(request, pk):
     else:
         form = OwnerForm(instance=owner, user=request.user)
     
+    # Get print statistics for this owner
+    print_summary = get_owner_print_summary(pk, days=365)
+    
     return render(request, 'go_data/owner_form.html', {
         'form': form,
         'object': owner,
         'title': f'Edit Owner: {owner.name}',
+        'print_summary': print_summary,
         'action': 'update'
     })
 

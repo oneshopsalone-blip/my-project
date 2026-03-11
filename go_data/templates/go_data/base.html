@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Vehicle Management System{% endblock %}</title>
+    <title>{% block title %}Data Management System{% endblock %}</title>
     
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚗</text></svg>">
@@ -639,20 +639,6 @@
                     {% endif %}
                 </div>
             </nav>
-
-            <!-- In base.html, add this to the header/navbar -->
-            <div class="user-info">
-                {% if user.is_authenticated %}
-                    <span>Welcome, {{ user.get_full_name|default:user.email }}</span>
-                    <a href="{% url 'accounts:profile' %}">Profile</a>
-                    <form method="post" action="{% url 'accounts:logout' %}" style="display: inline;">
-                        {% csrf_token %}
-                        <button type="submit">Logout</button>
-                    </form>
-                {% else %}
-                    <a href="{% url 'accounts:login' %}">Login</a>
-                {% endif %}
-            </div>
         </header>
 
         <!-- Messages/Alerts -->
